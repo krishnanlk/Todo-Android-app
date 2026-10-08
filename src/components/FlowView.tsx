@@ -13,7 +13,6 @@ interface FlowViewProps {
 }
 
 type Segment = 'timeline' | 'habits';
-type FlowFilter = 'all' | 'routines' | 'tasks';
 
 const ICONS: Record<string, string> = {
   wake: '☀️', morning: '🌤️', exercise: '🏃', breakfast: '🍳', college: '🏫',
@@ -56,7 +55,6 @@ export const FlowView: React.FC<FlowViewProps> = ({
   onOpenTaskModal,
 }) => {
   const [segment, setSegment] = useState<Segment>('timeline');
-  const [filter, setFilter] = useState<FlowFilter>('all');
   const liveRef = useRef<HTMLDivElement | null>(null);
 
   // FlowService retains all items (routines + scheduled tasks) into a chronological flow
@@ -64,26 +62,20 @@ export const FlowView: React.FC<FlowViewProps> = ({
     return FlowService.getTodayFlow();
   }, [routines, tasks]);
 
-  const filteredFlowItems = useMemo(() => {
-    if (filter === 'routines') return allFlowItems.filter(f => f.isRoutine);
-    if (filter === 'tasks')    return allFlowItems.filter(f => !f.isRoutine);
-    return allFlowItems;
-  }, [allFlowItems, filter]);
-
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   // Find currently active or next upcoming item
   const liveActiveId = useMemo(() => {
-    const active = filteredFlowItems.find(f => {
+    const active = allFlowItems.find(f => {
       const start = timeToMinutes(f.time);
       const end = timeToMinutes(f.endTime);
       return currentMinutes >= start && currentMinutes < end;
     });
     if (active) return active.id;
-    const upcoming = filteredFlowItems.find(f => timeToMinutes(f.time) > currentMinutes);
-    return upcoming ? upcoming.id : (filteredFlowItems[0]?.id || '');
-  }, [filteredFlowItems, currentMinutes]);
+    const upcoming = allFlowItems.find(f => timeToMinutes(f.time) > currentMinutes);
+    return upcoming ? upcoming.id : (allFlowItems[0]?.id || '');
+  }, [allFlowItems, currentMinutes]);
 
   // Auto-scroll to current live item on mount or segment switch
   useEffect(() => {
@@ -95,18 +87,18 @@ export const FlowView: React.FC<FlowViewProps> = ({
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [segment, filteredFlowItems]);
+  }, [segment, allFlowItems]);
 
   // Group by time block
   const groups = useMemo(() => {
     const map: Record<string, FlowEvent[]> = {};
-    for (const item of filteredFlowItems) {
+    for (const item of allFlowItems) {
       const block = getTimeBlock(timeToHour(item.time));
       if (!map[block]) map[block] = [];
       map[block].push(item);
     }
     return map;
-  }, [filteredFlowItems]);
+  }, [allFlowItems]);
 
   const completedCount = allFlowItems.filter(f => f.status === 'completed').length;
   const totalCount     = allFlowItems.length;
@@ -216,20 +208,6 @@ export const FlowView: React.FC<FlowViewProps> = ({
 
       {segment === 'timeline' ? (
         <>
-          {/* Filter pills: All / Routines / Tasks */}
-          <div className="filter-scroll" style={{padding:'0 16px', marginBottom:12}}>
-            {(['all', 'routines', 'tasks'] as const).map(f => (
-              <button
-                key={f}
-                className={`filter-pill${filter===f?' active':''}`}
-                onClick={() => setFilter(f)}
-                style={{textTransform:'capitalize'}}
-              >
-                {f === 'all' ? 'All Flow' : f}
-              </button>
-            ))}
-          </div>
-
           {/* Timeline view retaining all events */}
           <div className="flow-timeline">
             {Object.entries(groups).map(([block, items]) => (
@@ -355,7 +333,7 @@ export const FlowView: React.FC<FlowViewProps> = ({
               </div>
             ))}
 
-            {filteredFlowItems.length === 0 && (
+            {allFlowItems.length === 0 && (
               <div style={{textAlign:'center',padding:'40px 20px'}}>
                 <div style={{fontSize:48,marginBottom:12}}>🌊</div>
                 <div style={{fontSize:20,fontWeight:600,color:'var(--ios-label)',marginBottom:6}}>

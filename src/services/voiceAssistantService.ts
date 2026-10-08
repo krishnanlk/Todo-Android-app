@@ -23,7 +23,6 @@ export interface AssistantActionExecution {
   navigateToTab?: 'today' | 'flow' | 'missions' | 'assistant';
 }
 
-// Conversation context memory
 let memoryContext: {
   lastMentionedTaskId?: string;
   lastMentionedMissionId?: string;
@@ -35,6 +34,10 @@ let memoryContext: {
   awaitingFollowUpFor?: 'mission_deadline' | 'task_time';
   pendingMissionDraft?: { title: string; category?: string };
 } = {};
+
+// Module-level utterance references to prevent Android WebView Garbage Collection
+let activeSpeakingUtterance: SpeechSynthesisUtterance | null = null;
+let ttsKeepAliveInterval: any = null;
 
 // Helper: resolve relative date words (today, tomorrow, tonight, monday, etc.)
 export const resolveDateWord = (text: string): { dateKey: string; time?: string } => {
@@ -290,14 +293,35 @@ export const VoiceAssistantService = {
 
     let currentIndex = 0;
 
+    const clearKeepAlive = () => {
+      if (ttsKeepAliveInterval) {
+        clearInterval(ttsKeepAliveInterval);
+        ttsKeepAliveInterval = null;
+      }
+    };
+
+    const finishPlayback = () => {
+      clearKeepAlive();
+      activeSpeakingUtterance = null;
+      if (typeof window !== 'undefined') {
+        (window as any)._activeSpeakingUtterance = null;
+      }
+      if (onEnd) onEnd();
+    };
+
     const playNext = () => {
       if (currentIndex >= sentences.length) {
-        if (onEnd) onEnd();
+        finishPlayback();
         return;
       }
 
       const sentence = sentences[currentIndex++];
       const utterance = new SpeechSynthesisUtterance(sentence);
+      activeSpeakingUtterance = utterance;
+      if (typeof window !== 'undefined') {
+        (window as any)._activeSpeakingUtterance = utterance;
+      }
+
       utterance.rate = settings.voiceSpeed || 1.0;
       utterance.pitch = settings.voicePitch || 1.0;
       utterance.lang = 'en-US';
@@ -323,6 +347,17 @@ export const VoiceAssistantService = {
       }
     };
 
+    // Android WebView background keepalive to prevent audio pause stall
+    clearKeepAlive();
+    ttsKeepAliveInterval = setInterval(() => {
+      if (synth && synth.speaking) {
+        synth.pause();
+        synth.resume();
+      } else {
+        clearKeepAlive();
+      }
+    }, 4500);
+
     // Android WebView workaround: small delay after cancel before speak
     setTimeout(() => {
       try {
@@ -332,17 +367,25 @@ export const VoiceAssistantService = {
         playNext();
       } catch (err) {
         console.warn('TTS start error:', err);
-        if (onEnd) onEnd();
+        finishPlayback();
       }
     }, 60);
   },
 
   stopSpeaking: () => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch {
-        // ignore
+    if (ttsKeepAliveInterval) {
+      clearInterval(ttsKeepAliveInterval);
+      ttsKeepAliveInterval = null;
+    }
+    activeSpeakingUtterance = null;
+    if (typeof window !== 'undefined') {
+      (window as any)._activeSpeakingUtterance = null;
+      if (window.speechSynthesis) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          // ignore
+        }
       }
     }
   },

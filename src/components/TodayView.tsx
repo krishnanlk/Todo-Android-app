@@ -20,9 +20,6 @@ interface TodayViewProps {
   onNavigateToTab: (tab: TabType) => void;
 }
 
-const CATEGORY_FILTERS = ['All', 'Routines', 'Missions', 'Study', 'Dev', 'Work'] as const;
-type CategoryFilter = typeof CATEGORY_FILTERS[number];
-
 const priorityBadge = (p: string) => {
   if (p === 'high')   return <span className="ios-pill ios-pill-red"   style={{fontSize:11}}>High</span>;
   if (p === 'medium') return <span className="ios-pill ios-pill-orange" style={{fontSize:11}}>Med</span>;
@@ -34,7 +31,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
   onOpenCarryoverModal, onOpenSettingsModal, onOpenReviewsModal,
   onOpenWidgetsModal: _onOpenWidgetsModal, onNavigateToTab,
 }) => {
-  const [filter, setFilter] = useState<CategoryFilter>('All');
   const missionMap = new Map(missions.map(m => [m.id, m]));
 
   const now = new Date();
@@ -72,16 +68,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
     if (pDiff !== 0) return pDiff;
 
     return (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99');
-  });
-
-  const filtered = sortedTasks.filter(t => {
-    if (filter === 'All')      return true;
-    if (filter === 'Routines') return !!t.recurrence;
-    if (filter === 'Missions') return !!t.missionId;
-    if (filter === 'Study')    return t.category === 'study';
-    if (filter === 'Dev')      return t.category === 'development';
-    if (filter === 'Work')     return t.category === 'work';
-    return true;
   });
 
   const completed  = tasks.filter(t => t.status === 'completed').length;
@@ -243,29 +229,16 @@ export const TodayView: React.FC<TodayViewProps> = ({
         </button>
       </div>
 
-      {/* ── Filter pills ── */}
-      <div className="filter-scroll" style={{paddingBottom:8}}>
-        {CATEGORY_FILTERS.map(f => (
-          <button
-            key={f}
-            className={`filter-pill${filter===f?' active':''}`}
-            onClick={() => setFilter(f)}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
       {/* ── Task list (iOS grouped style) ── */}
       <div style={{padding:'0 16px', marginBottom:8}}>
-        {filtered.length === 0 ? (
+        {sortedTasks.length === 0 ? (
           <div className="ios-card" style={{textAlign:'center',padding:'32px 20px'}}>
             <div style={{fontSize:40,marginBottom:8}}>✨</div>
             <div style={{fontSize:17,fontWeight:600,color:'var(--ios-label)',marginBottom:4}}>
               All clear!
             </div>
             <div style={{fontSize:14,color:'var(--ios-label2)'}}>
-              No tasks in this category.
+              No tasks for today.
             </div>
             <button
               onClick={() => onOpenTaskModal()}
@@ -277,7 +250,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
           </div>
         ) : (
           <div className="ios-grouped-card">
-            {filtered.map((task, i) => {
+            {sortedTasks.map((task, i) => {
               const done     = task.status === 'completed';
               const mission  = task.missionId ? missionMap.get(task.missionId) : undefined;
 

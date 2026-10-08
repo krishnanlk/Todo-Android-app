@@ -53,10 +53,10 @@ export const ProgressService = {
         ? Math.round((monthCompleted.length / monthTasks.length) * 100)
         : weeklyCompletionRate;
 
-    // 4. ROUTINE CONSISTENCY
-    let routineConsistency = 88;
+    // 4. ROUTINE CONSISTENCY - derived strictly from real routine data
+    let routineConsistency = 0;
     if (routines.length > 0) {
-      const totalScore = routines.reduce((sum, r) => sum + (r.consistencyScore || 85), 0);
+      const totalScore = routines.reduce((sum, r) => sum + (r.consistencyScore || 0), 0);
       routineConsistency = Math.round(totalScore / routines.length);
     }
 
@@ -88,11 +88,6 @@ export const ProgressService = {
       } else {
         break;
       }
-    }
-
-    // Fallback minimum sensible streak for realism if demo data present
-    if (taskCompletionStreak === 0 && completions.length > 0) {
-      taskCompletionStreak = 5;
     }
 
     // 7. MISSED TASK COUNT (Due before today, not completed)

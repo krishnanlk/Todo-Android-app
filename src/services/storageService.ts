@@ -13,7 +13,7 @@ const STORAGE_KEYS = {
   COMPLETIONS: 'lineup_completions',
   SETTINGS: 'lineup_settings',
   VOICE_CONVERSATIONS: 'lineup_voice_conversations',
-  INITIALIZED: 'lineup_initialized_v1',
+  INITIALIZED: 'lineup_user_standalone_v2',
 };
 
 export const defaultSettings: UserSettings = {
@@ -336,18 +336,48 @@ export const generateDemoData = () => {
 };
 
 export const StorageService = {
-  initStorage: () => {
+  checkDailyMidnightReset: (): boolean => {
     try {
+      const today = getTodayKey();
+      const lastDay = localStorage.getItem('lineup_last_day_key');
+      if (lastDay !== today) {
+        localStorage.setItem('lineup_last_day_key', today);
+        // Midnight reset: routines start fresh for the new day
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  initStorage: (forceClean: boolean = false) => {
+    try {
+      StorageService.checkDailyMidnightReset();
+
       const initialized = localStorage.getItem(STORAGE_KEYS.INITIALIZED);
-      if (!initialized) {
-        const demo = generateDemoData();
-        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(demo.tasks));
-        localStorage.setItem(STORAGE_KEYS.MISSIONS, JSON.stringify(demo.missions));
-        localStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(demo.routines));
-        localStorage.setItem(STORAGE_KEYS.COMPLETIONS, JSON.stringify(demo.completions));
-        localStorage.setItem(STORAGE_KEYS.VOICE_CONVERSATIONS, JSON.stringify(demo.conversations));
+      if (!initialized || forceClean) {
+        // Standalone clean initial state: no dummy tasks or fake completion history
+        const initialRoutines: Routine[] = APP_CONFIG.defaultRoutines.map((r) => ({
+          id: r.id,
+          title: r.title,
+          icon: r.icon,
+          time: r.time,
+          durationMinutes: r.durationMinutes,
+          daysOfWeek: r.daysOfWeek,
+          category: r.category,
+          consistencyScore: 0,
+          active: true,
+        }));
+
+        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify([]));
+        localStorage.setItem(STORAGE_KEYS.MISSIONS, JSON.stringify([]));
+        localStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(initialRoutines));
+        localStorage.setItem(STORAGE_KEYS.COMPLETIONS, JSON.stringify([]));
+        localStorage.setItem(STORAGE_KEYS.VOICE_CONVERSATIONS, JSON.stringify([]));
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(defaultSettings));
         localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+        localStorage.setItem('lineup_last_day_key', getTodayKey());
       }
     } catch (err) {
       console.warn('Storage initialization fallback to memory', err);

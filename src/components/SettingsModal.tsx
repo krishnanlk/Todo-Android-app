@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserSettings } from '../types';
 import { StorageService } from '../services/storageService';
+import { NotificationService } from '../services/notificationService';
 import { APP_CONFIG } from '../config/appConfig';
 
 interface SettingsModalProps {
@@ -234,12 +235,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               Reviews & Notifications
             </div>
             <div className="ios-grouped-card">
-              <SettingRow label="Daily Reminders"
+              <SettingRow label="Daily Tasks Due Alerts"
+                subtitle="Smart & witty reminders for tasks due today"
                 right={<Toggle checked={settings.dailyReviewNotification}
                   onChange={v => save('dailyReviewNotification', v)} />} />
               <SettingRow label="Weekly Summaries"
                 right={<Toggle checked={settings.weeklyReviewNotification}
                   onChange={v => save('weeklyReviewNotification', v)} />} />
+              <div
+                className="ios-row"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  NotificationService.requestPermission();
+                  NotificationService.checkAndTriggerDailyAlert(true);
+                }}
+              >
+                <span style={{ flex: 1, fontSize: 15, color: 'var(--ios-blue)' }}>🔔 Test Witty Notification</span>
+                <span style={{ fontSize: 13, color: 'var(--ios-label3)' }}>Send now ›</span>
+              </div>
             </div>
           </div>
 

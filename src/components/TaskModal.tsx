@@ -179,20 +179,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, task, missions, on
             </div>
           </div>
 
-          {/* Category */}
-          <div className="ios-input-group">
-            <div className="ios-input-label">Category</div>
-            <select
-              className="ios-select"
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              style={{colorScheme:'dark'}}
-            >
-              {CATEGORIES.map(c => (
-                <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>
-              ))}
-            </select>
-          </div>
 
           {/* Recurrence */}
           <div className="ios-input-group">

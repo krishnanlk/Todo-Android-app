@@ -76,7 +76,7 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
       }
     }
 
-    const streakCount = Math.max(stats.taskCompletionStreak || 0, 1);
+    const streakCount = stats.taskCompletionStreak || 0;
 
     // End of current week (Sunday)
     const currentDayOfWeek = today.getDay();
@@ -232,17 +232,17 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
                     fontWeight: 700,
                     padding: '2px 7px',
                     borderRadius: 6,
-                    background: 'rgba(57, 211, 83, 0.16)',
-                    color: '#39D353',
-                    border: '1px solid rgba(57, 211, 83, 0.3)',
+                    background: activeStreakDays > 0 ? 'rgba(57, 211, 83, 0.16)' : 'rgba(10, 132, 255, 0.16)',
+                    color: activeStreakDays > 0 ? '#39D353' : 'var(--ios-blue)',
+                    border: activeStreakDays > 0 ? '1px solid rgba(57, 211, 83, 0.3)' : '1px solid rgba(10, 132, 255, 0.3)',
                     letterSpacing: '0.4px',
                   }}
                 >
-                  ACTIVE
+                  {activeStreakDays > 0 ? 'ACTIVE' : 'START TODAY'}
                 </span>
               </div>
               <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 2 }}>
-                Working streak & habit consistency
+                Real device activity & consistency
               </div>
             </div>
           </div>
@@ -369,7 +369,7 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
                   <Award size={14} color="#39D353" />
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#FFF', marginTop: 4 }}>
-                  {Math.max(activeStreakDays, 14)} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ios-label2)' }}>days</span>
+                  {activeStreakDays} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ios-label2)' }}>days</span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 2 }}>
                   Personal best

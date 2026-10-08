@@ -20,6 +20,7 @@ import { MissionService }  from './services/missionService';
 import { RoutineService }  from './services/routineService';
 import { ProgressService } from './services/progressService';
 import { WidgetService }   from './services/widgetService';
+import { NotificationService } from './services/notificationService';
 import { App as CapApp }   from '@capacitor/app';
 
 export type TabType = 'today' | 'flow' | 'missions' | 'assistant';
@@ -264,8 +265,28 @@ export default function App() {
 
     const handler = (e: any) => { setToast(`${e.detail.title} — ${e.detail.body}`); };
     window.addEventListener('lineup-notification', handler);
+
+    // Initial check for witty daily tasks due today notification
+    NotificationService.checkAndTriggerDailyAlert();
+
+    // 24-Hour Midnight 12:00 AM Auto-Reset monitor
+    const checkMidnightAndAlerts = () => {
+      const resetOccurred = StorageService.checkDailyMidnightReset();
+      if (resetOccurred) {
+        reload();
+      }
+      NotificationService.checkAndTriggerDailyAlert();
+    };
+
+    const midnightTimer = setInterval(checkMidnightAndAlerts, 30000); // Check every 30s
+    window.addEventListener('focus', checkMidnightAndAlerts);
+    document.addEventListener('visibilitychange', checkMidnightAndAlerts);
+
     return () => {
       window.removeEventListener('lineup-notification', handler);
+      window.removeEventListener('focus', checkMidnightAndAlerts);
+      document.removeEventListener('visibilitychange', checkMidnightAndAlerts);
+      clearInterval(midnightTimer);
       if (backSub && backSub.remove) backSub.remove();
     };
   }, [reload]);
