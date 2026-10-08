@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Web%20%7C%20iOS-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/Capacitor-v8-brightgreen?style=flat-square" alt="Capacitor" />
   <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square" alt="React" />
-  <img src="https://img.shields.io/badge/Release-v1.2.0-blueviolet?style=flat-square" alt="Release v1.2.0" />
+  <img src="https://img.shields.io/badge/Release-v1.1.1-blueviolet?style=flat-square" alt="Release v1.1.1" />
   <img src="https://img.shields.io/badge/TypeScript-v6-blue?style=flat-square" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-v8-646CFF?style=flat-square" alt="Vite" />
   <img src="https://img.shields.io/badge/Android%20SDK-34+-success?style=flat-square" alt="Android SDK" />
@@ -20,45 +20,55 @@
 
 ---
 
-## 📦 Direct APK Downloads (v1.2.0)
+## 📦 Direct APK Downloads (v1.1.1)
 
-You can download and install the latest compiled Android package directly from the repository or from [GitHub Releases v1.2.0](https://github.com/krishnanlk/Todo-Android-app/releases/tag/v1.2.0):
+You can download and install the latest compiled Android package directly from the repository or from [GitHub Releases v1.1.1](https://github.com/krishnanlk/Todo-Android-app/releases/tag/v1.1.1):
 
 | Build Type | File Path | Description | Download |
 |---|---|---|---|
-| 🟢 **Debug APK (v1.2.0)** | [`apk/LineUp-debug.apk`](apk/LineUp-debug.apk) | Latest build with witty daily notifications, ChatGPT Assistant UI, 12 AM reset, and TTS fixes (4.4 MB) | [Download Debug APK (v1.2.0)](apk/LineUp-debug.apk) |
+| 🟢 **Debug APK (v1.1.1)** | [`apk/LineUp-debug.apk`](apk/LineUp-debug.apk) | Latest build with ChatGPT Voice Capsule (Image 4), feedback loop fix, witty notifications, and 12 AM reset (4.4 MB) | [Download Debug APK (v1.1.1)](apk/LineUp-debug.apk) |
 | 🚀 **Release APK (v1.0.0)** | [`apk/LineUp-release-unsigned.apk`](apk/LineUp-release-unsigned.apk) | Lightweight release package | [Download Release APK](apk/LineUp-release-unsigned.apk) |
 
 > 💡 **Installation Note**: To install on Android, download the `.apk` file to your mobile device, tap to install, and allow **"Install from unknown sources"** if prompted by Android security settings.
 
 ---
 
-## 🚀 What's New in Version 1.2.0
+## 🚀 What's New in Version 1.1.1
 
-### 1. 🔔 Catchy, Witty Daily Task Notifications (Pure English)
+### 1. 🎙️ ChatGPT Voice Start & Stop Flow (Image 4 UI)
+* **Exact ChatGPT Capsule Bar**: Replaces the input bar with an ultra-sleek dark capsule featuring:
+  * **`[ ✕ ]` Cancel Button**: Instantly aborts recording, clears the transcript, and returns to normal text mode with zero messages sent.
+  * **Dotted Waveform Track (`······ ||||||| ······`)**: Dynamic real-time soundwave bars and horizontal dotted track that ripple while speaking.
+  * **`[ ⏹ ]` Pause/Stop Button**: Pauses recording and locks the transcript for review without discarding your spoken words.
+  * **`[ ↑ ]` Blue Circular Send Button**: Finalizes recording, halts the microphone, and dispatches **one single finalized message**.
+* **Live Transcription Preview**: Floating real-time speech preview chip displaying your words as you speak with visual status indicators.
+
+### 2. 🔇 Zero Audio Loopback & Duplicate Entry Fix
+* **No Premature Splitting**: Replaced fragmented recognition with continuous interim streaming so full sentences are captured seamlessly without splitting on brief pauses.
+* **Strict Microphone Isolation**: The microphone is strictly muted and disabled during Text-To-Speech response playback, completely preventing the bot from hearing its own voice and creating infinite duplicate loops.
+* **Cleaned Chat Stream**: Removed redundant in-chat listening bubbles for a distraction-free, fluid conversation.
+
+### 3. 🔔 Catchy, Witty Daily Task Notifications (Pure English)
 * **Smart Same-Day Alerts**: Intelligent notification system alerting users to tasks due today, written in pure, snappy, engaging English (witty app style with zero Hinglish/foreign words).
 * **Dynamic Time-of-Day Copy**: Fresh punchy morning kick-offs, midday check-ins, and evening countdowns adapted to the user's remaining task count.
 * **Capacitor Native Notifications**: Full background support via `@capacitor/local-notifications` with status bar icons, plus in-app toast banners and browser push.
 * **Instant In-App Test Button**: Added a **"🔔 Test Witty Notification"** action in Settings to preview alerts immediately.
 
-### 2. 🤖 ChatGPT-Style Assistant UI & Soft Keyboard Fix
+### 4. 🤖 ChatGPT-Style Assistant UI & Soft Keyboard Fix
 * **Modern Bottom Input Bar**: Streamlined chat area with the microphone button placed directly inside the bottom input bar next to the Send button.
 * **Zero Keyboard Overlap**: Automatically hides the bottom tab bar (`.ios-tab-bar`) when typing so the input docks cleanly above Android's virtual keyboard.
-* **Full-Height Chat Experience**: Removed the bulky center voice orb for an expansive, fluid conversation interface.
 
-### 3. 🎯 Simplified Tasks View & Streamlined Creation
+### 5. 🎯 Simplified Tasks View & Streamlined Creation
 * **Direct Task List**: Removed category filter pills (`All`, `Routines`, `Missions`, `Study`, `Dev`, `Work`) from the Tasks view—all tasks are now displayed directly.
 * **Faster Task Creation**: Removed the category entry tag from the task modal so tasks can be scheduled in seconds.
 
-### 4. 🌊 Streamlined Life Flow & 24-Hour Midnight Reset
+### 6. 🌊 Streamlined Life Flow & 24-Hour Midnight Reset
 * **Direct Timeline View**: Removed redundant sub-filters (`All Flow`, `Routines`, `Tasks`) from Life Flow for an uninterrupted chronological day view.
 * **Automatic 12:00 AM Reset**: At midnight, daily flow check-offs automatically reset for the new day while retaining habit consistency history.
 
-### 5. 🔊 Reliable Android Speech Synthesis
-* **Garbage-Collection Guard**: Resolved Android WebView audio cut-offs with module-level utterance references and background keep-alive pulses.
-
-### 6. 🛡️ True Standalone Local-First Architecture
+### 7. 🛡️ True Standalone Local-First Architecture
 * **Zero Fake Data**: Fresh installations begin with true `0d streak` and an empty heatmap; all metrics are earned exclusively through real device actions.
+* **Complete Device Isolation**: Completely private local data storage with zero conflicts between separate devices.
 
 
 ---
