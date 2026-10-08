@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Calendar, X, CheckSquare, Square, ArrowRight, Archive, Sparkles, Clock } from 'lucide-react';
-import { Task } from '../types';
 import { TaskService } from '../services/taskService';
 import { WidgetService } from '../services/widgetService';
 

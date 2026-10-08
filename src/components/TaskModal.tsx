@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task, Mission } from '../types';
 import { TaskService } from '../services/taskService';
+import { getTodayKey } from '../services/storageService';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ const RECURRENCES = ['none','daily','weekdays','weekends','weekly','monthly'];
 export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, task, missions, onClose, onSaved }) => {
   const [title,      setTitle]      = useState('');
   const [notes,      setNotes]      = useState('');
-  const [dueDate,    setDueDate]    = useState('');
+  const [dueDate,    setDueDate]    = useState(getTodayKey());
   const [dueTime,    setDueTime]    = useState('');
   const [priority,   setPriority]   = useState<'low'|'medium'|'high'>('medium');
   const [category,   setCategory]   = useState('general');
@@ -29,14 +30,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, task, missions, on
     if (task) {
       setTitle(task.title || '');
       setNotes(task.notes || '');
-      setDueDate(task.dueDate || '');
+      setDueDate(task.dueDate || getTodayKey());
       setDueTime(task.dueTime || '');
       setPriority(task.priority || 'medium');
       setCategory(task.category || 'general');
       setMissionId(task.missionId || '');
       setRecurrence(task.recurrence || 'none');
     } else {
-      setTitle(''); setNotes(''); setDueDate(''); setDueTime('');
+      setTitle(''); setNotes(''); setDueDate(getTodayKey()); setDueTime('');
       setPriority('medium'); setCategory('general');
       setMissionId(''); setRecurrence('none');
     }
@@ -51,7 +52,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, task, missions, on
       const data = {
         title:      title.trim(),
         notes,
-        dueDate,
+        dueDate:    dueDate || getTodayKey(),
         dueTime,
         priority,
         category,

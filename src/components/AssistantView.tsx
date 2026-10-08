@@ -239,8 +239,19 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
         ))}
       </div>
 
-      {/* Text input */}
-      <div style={{padding:'10px 16px',display:'flex',gap:8,alignItems:'center'}}>
+      {/* Text input with clean elevation and clearance */}
+      <div style={{
+        padding: '10px 16px',
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        background: 'rgba(28, 28, 30, 0.65)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderRadius: 20,
+        margin: '0 16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
         <div style={{
           flex:1,display:'flex',alignItems:'center',
           background:'var(--ios-bg2)',borderRadius:22,
@@ -250,7 +261,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
             value={typedInput}
             onChange={e => setTypedInput(e.target.value)}
             onKeyDown={e => e.key==='Enter' && handleTextSend()}
-            placeholder="Type a message…"
+            placeholder="Type a message or command…"
             disabled={voiceState !== 'idle'}
             style={{
               flex:1,background:'none',border:'none',outline:'none',
@@ -278,7 +289,8 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
         </button>
       </div>
 
-      <div style={{height:8}}/>
+      {/* Ample bottom spacer to ensure 0% overlap with the floating tab bar */}
+      <div style={{ height: 'calc(var(--tab-bar-height) + 34px)', flexShrink: 0 }} />
     </div>
   );
 };

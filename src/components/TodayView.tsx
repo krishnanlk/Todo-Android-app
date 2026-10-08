@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { Task, ProductivityStats, Mission } from '../types';
 import { TaskService }  from '../services/taskService';
 import { WidgetService } from '../services/widgetService';
+import { getTodayKey }   from '../services/storageService';
 import { StreakGraph }   from './StreakGraph';
 import type { TabType } from '../App';
 
@@ -15,7 +16,7 @@ interface TodayViewProps {
   onOpenCarryoverModal: () => void;
   onOpenSettingsModal: () => void;
   onOpenReviewsModal: () => void;
-  onOpenWidgetsModal: () => void;
+  onOpenWidgetsModal?: () => void;
   onNavigateToTab: (tab: TabType) => void;
 }
 
@@ -31,7 +32,7 @@ const priorityBadge = (p: string) => {
 export const TodayView: React.FC<TodayViewProps> = ({
   tasks, stats, missions, onRefresh, onOpenTaskModal,
   onOpenCarryoverModal, onOpenSettingsModal, onOpenReviewsModal,
-  onOpenWidgetsModal, onNavigateToTab,
+  onOpenWidgetsModal: _onOpenWidgetsModal, onNavigateToTab,
 }) => {
   const [filter, setFilter] = useState<CategoryFilter>('All');
   const missionMap = new Map(missions.map(m => [m.id, m]));
@@ -53,7 +54,27 @@ export const TodayView: React.FC<TodayViewProps> = ({
     onRefresh();
   };
 
-  const filtered = tasks.filter(t => {
+  const todayKey = getTodayKey();
+
+  // Line up tasks: unfinished first (overdue on top, priority, time), completed at the bottom
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aDone = a.status === 'completed';
+    const bDone = b.status === 'completed';
+    if (aDone !== bDone) return aDone ? 1 : -1;
+
+    // Overdue tasks that are unfinished get prominent top position
+    const aOverdue = a.dueDate && a.dueDate < todayKey && !aDone;
+    const bOverdue = b.dueDate && b.dueDate < todayKey && !bDone;
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+
+    const pWeight = { high: 3, medium: 2, low: 1 };
+    const pDiff = (pWeight[b.priority] || 2) - (pWeight[a.priority] || 2);
+    if (pDiff !== 0) return pDiff;
+
+    return (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99');
+  });
+
+  const filtered = sortedTasks.filter(t => {
     if (filter === 'All')      return true;
     if (filter === 'Routines') return !!t.recurrence;
     if (filter === 'Missions') return !!t.missionId;
@@ -78,40 +99,44 @@ export const TodayView: React.FC<TodayViewProps> = ({
         <span style={{fontSize:13,fontWeight:600,color:'var(--ios-label2)'}}>
           {dateStr}
         </span>
-        <div style={{display:'flex',gap:4}}>
-          {[
-            { icon:'⊞', action: onOpenWidgetsModal, label:'Widgets' },
-            { icon:'◉', action: onOpenReviewsModal, label:'Reviews' },
-            { icon:'⚙', action: onOpenSettingsModal, label:'Settings' },
-          ].map(btn => (
-            <button
-              key={btn.label}
-              onClick={btn.action}
-              title={btn.label}
-              style={{
-                width:32, height:32, borderRadius:10,
-                background:'var(--ios-fill3)', border:'none',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:16, color:'var(--ios-label)', cursor:'pointer',
-              }}
-            >
-              {btn.icon === '⊞' ? (
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="1" y="1" width="7" height="7" rx="2"/><rect x="10" y="1" width="7" height="7" rx="2"/>
-                  <rect x="1" y="10" width="7" height="7" rx="2"/><rect x="10" y="10" width="7" height="7" rx="2"/>
-                </svg>
-              ) : btn.icon === '◉' ? (
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <polyline points="5,9 8,12 13,7"/><rect x="2" y="2" width="14" height="14" rx="4"/>
-                </svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="9" cy="9" r="3.5"/>
-                  <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.05 3.05l1.42 1.42M13.53 13.53l1.42 1.42M3.05 14.95l1.42-1.42M13.53 4.47l1.42-1.42"/>
-                </svg>
-              )}
-            </button>
-          ))}
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          {/* Working Productivity Analysis shortcut */}
+          <button
+            onClick={onOpenReviewsModal}
+            title="Productivity Analysis"
+            style={{
+              padding:'6px 12px', borderRadius:12,
+              background:'linear-gradient(135deg, rgba(10,132,255,0.2) 0%, rgba(94,92,230,0.18) 100%)',
+              border:'1px solid rgba(10,132,255,0.35)',
+              display:'flex', alignItems:'center', gap:6,
+              fontSize:12, fontWeight:700, color:'var(--ios-blue)', cursor:'pointer',
+              boxShadow:'0 2px 8px rgba(10,132,255,0.15)',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="1" y="9" width="3" height="6" rx="1"/>
+              <rect x="6.5" y="5" width="3" height="10" rx="1"/>
+              <rect x="12" y="1" width="3" height="14" rx="1"/>
+            </svg>
+            <span>Analysis</span>
+          </button>
+
+          {/* Settings button */}
+          <button
+            onClick={onOpenSettingsModal}
+            title="Settings"
+            style={{
+              width:32, height:32, borderRadius:10,
+              background:'var(--ios-fill3)', border:'none',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:16, color:'var(--ios-label)', cursor:'pointer',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="9" cy="9" r="3.5"/>
+              <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.05 3.05l1.42 1.42M13.53 13.53l1.42 1.42M3.05 14.95l1.42-1.42M13.53 4.47l1.42-1.42"/>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -287,6 +312,9 @@ export const TodayView: React.FC<TodayViewProps> = ({
                         {task.title}
                       </span>
                       {priorityBadge(task.priority)}
+                      {task.dueDate && task.dueDate < todayKey && !done && (
+                        <span className="ios-pill ios-pill-red" style={{fontSize:11}}>Overdue</span>
+                      )}
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                       {task.dueTime && (

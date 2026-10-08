@@ -1,23 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Routine } from '../types';
-import { RoutineService } from '../services/routineService';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import confetti from 'canvas-confetti';
+import { Routine, Task, FlowEvent } from '../types';
+import { FlowService } from '../services/flowService';
+import { WidgetService } from '../services/widgetService';
 
 interface FlowViewProps {
   routines: Routine[];
+  tasks?: Task[];
   onRefresh: () => void;
   onOpenRoutineModal: (r?: Routine) => void;
+  onOpenTaskModal?: (t?: Task) => void;
 }
 
 type Segment = 'timeline' | 'habits';
+type FlowFilter = 'all' | 'routines' | 'tasks';
 
-const ICONS: Record<string,string> = {
+const ICONS: Record<string, string> = {
   wake: '☀️', morning: '🌤️', exercise: '🏃', breakfast: '🍳', college: '🏫',
   study: '📚', work: '💼', lunch: '🥗', break: '☕', reading: '📖',
   meditation: '🧘', project: '💡', dinner: '🍽️', evening: '🌙', sleep: '😴',
 };
 
-function getEmoji(name: string): string {
-  const key = Object.keys(ICONS).find(k => name.toLowerCase().includes(k));
+function getEmoji(title: string, defaultIcon?: string): string {
+  if (defaultIcon) return defaultIcon;
+  const key = Object.keys(ICONS).find(k => title.toLowerCase().includes(k));
   return key ? ICONS[key] : '📌';
 }
 
@@ -42,46 +48,44 @@ function timeToMinutes(t?: string): number {
   return (h || 0) * 60 + (m || 0);
 }
 
-function routineStatus(r: Routine): 'completed'|'in-progress'|'upcoming'|'missed' {
-  const now   = new Date();
-  const currentTotal = now.getHours() * 60 + now.getMinutes();
-  const start = timeToMinutes(r.startTime);
-  const dur   = r.duration || r.durationMinutes || 60;
-  const end   = start + dur;
-
-  if (r.completedToday) return 'completed';
-  if (currentTotal >= start && currentTotal < end) return 'in-progress';
-  if (currentTotal >= end) return 'completed';
-  return 'upcoming';
-}
-
-export const FlowView: React.FC<FlowViewProps> = ({ routines, onRefresh, onOpenRoutineModal }) => {
+export const FlowView: React.FC<FlowViewProps> = ({
+  routines,
+  tasks = [],
+  onRefresh,
+  onOpenRoutineModal,
+  onOpenTaskModal,
+}) => {
   const [segment, setSegment] = useState<Segment>('timeline');
+  const [filter, setFilter] = useState<FlowFilter>('all');
   const liveRef = useRef<HTMLDivElement | null>(null);
 
-  const sorted = [...routines].sort((a, b) =>
-    timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+  // FlowService retains all items (routines + scheduled tasks) into a chronological flow
+  const allFlowItems = useMemo(() => {
+    return FlowService.getTodayFlow();
+  }, [routines, tasks]);
+
+  const filteredFlowItems = useMemo(() => {
+    if (filter === 'routines') return allFlowItems.filter(f => f.isRoutine);
+    if (filter === 'tasks')    return allFlowItems.filter(f => !f.isRoutine);
+    return allFlowItems;
+  }, [allFlowItems, filter]);
 
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  // Find live active or upcoming routine id for auto-scroll
-  let liveActiveId = '';
-  for (const r of sorted) {
-    const start = timeToMinutes(r.startTime);
-    const dur = r.duration || r.durationMinutes || 60;
-    const end = start + dur;
-    if (currentMinutes >= start && currentMinutes < end) {
-      liveActiveId = r.id;
-      break;
-    }
-  }
-  if (!liveActiveId && sorted.length > 0) {
-    const upcoming = sorted.find(r => timeToMinutes(r.startTime) > currentMinutes);
-    liveActiveId = upcoming ? upcoming.id : sorted[sorted.length - 1].id;
-  }
+  // Find currently active or next upcoming item
+  const liveActiveId = useMemo(() => {
+    const active = filteredFlowItems.find(f => {
+      const start = timeToMinutes(f.time);
+      const end = timeToMinutes(f.endTime);
+      return currentMinutes >= start && currentMinutes < end;
+    });
+    if (active) return active.id;
+    const upcoming = filteredFlowItems.find(f => timeToMinutes(f.time) > currentMinutes);
+    return upcoming ? upcoming.id : (filteredFlowItems[0]?.id || '');
+  }, [filteredFlowItems, currentMinutes]);
 
-  // Auto-scroll to current live routine on mount or tab change
+  // Auto-scroll to current live item on mount or segment switch
   useEffect(() => {
     if (segment === 'timeline') {
       const timer = setTimeout(() => {
@@ -91,23 +95,42 @@ export const FlowView: React.FC<FlowViewProps> = ({ routines, onRefresh, onOpenR
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [segment, routines]);
+  }, [segment, filteredFlowItems]);
 
-  /* Group by time block */
-  const groups: Record<string, Routine[]> = {};
-  for (const r of sorted) {
-    const block = getTimeBlock(timeToHour(r.startTime));
-    if (!groups[block]) groups[block] = [];
-    groups[block].push(r);
-  }
+  // Group by time block
+  const groups = useMemo(() => {
+    const map: Record<string, FlowEvent[]> = {};
+    for (const item of filteredFlowItems) {
+      const block = getTimeBlock(timeToHour(item.time));
+      if (!map[block]) map[block] = [];
+      map[block].push(item);
+    }
+    return map;
+  }, [filteredFlowItems]);
 
-  const completedCount = routines.filter(r => r.completedToday).length;
-  const totalCount     = routines.length;
+  const completedCount = allFlowItems.filter(f => f.status === 'completed').length;
+  const totalCount     = allFlowItems.length;
+  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const handleToggle = (r: Routine, e: React.MouseEvent) => {
+  const handleToggle = (item: FlowEvent, e: React.MouseEvent) => {
     e.stopPropagation();
-    RoutineService.toggleToday(r.id);
+    const wasCompleted = FlowService.toggleFlowItemComplete(item);
+    if (wasCompleted) {
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 },
+        colors: ['#5E5CE6', '#0A84FF', '#30D158', '#FF9F0A'] });
+    }
+    WidgetService.refreshPayload();
     onRefresh();
+  };
+
+  const handleItemClick = (item: FlowEvent) => {
+    if (item.isRoutine) {
+      const foundRoutine = routines.find(r => r.id === item.refId);
+      onOpenRoutineModal(foundRoutine);
+    } else if (onOpenTaskModal) {
+      const foundTask = tasks.find(t => t.id === item.refId);
+      onOpenTaskModal(foundTask);
+    }
   };
 
   const formattedLiveTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -122,7 +145,7 @@ export const FlowView: React.FC<FlowViewProps> = ({ routines, onRefresh, onOpenR
           style={{display:'flex',alignItems:'center',gap:4,fontSize:15,fontWeight:600,
             color:'var(--ios-blue)',background:'none',border:'none',cursor:'pointer'}}
         >
-          <span style={{fontSize:18}}>+</span> Add
+          <span style={{fontSize:18}}>+</span> Add Routine
         </button>
       </div>
 
@@ -146,11 +169,11 @@ export const FlowView: React.FC<FlowViewProps> = ({ routines, onRefresh, onOpenR
         </div>
       </div>
 
-      {/* Progress ring + summary */}
+      {/* Unified Progress Card: retains all items */}
       <div style={{padding:'0 16px', marginBottom:12}}>
         <div className="ios-card" style={{
-          background:'linear-gradient(135deg,rgba(94,92,230,0.15),rgba(191,90,242,0.1))',
-          border:'1px solid rgba(94,92,230,0.2)',
+          background:'linear-gradient(135deg, rgba(94,92,230,0.18), rgba(10,132,255,0.12))',
+          border:'1px solid rgba(94,92,230,0.25)',
           display:'flex', alignItems:'center', gap:20,
         }}>
           {/* Ring */}
@@ -159,7 +182,7 @@ export const FlowView: React.FC<FlowViewProps> = ({ routines, onRefresh, onOpenR
               <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8"/>
               <circle cx="36" cy="36" r="30" fill="none" stroke="var(--ios-indigo)" strokeWidth="8"
                 strokeDasharray={`${2*Math.PI*30}`}
-                strokeDashoffset={`${2*Math.PI*30*(1-(totalCount>0?completedCount/totalCount:0))}`}
+                strokeDashoffset={`${2*Math.PI*30*(1 - pct / 100)}`}
                 strokeLinecap="round"
                 style={{transition:'stroke-dashoffset 0.6s ease'}}
               />
@@ -172,126 +195,179 @@ export const FlowView: React.FC<FlowViewProps> = ({ routines, onRefresh, onOpenR
           </div>
           <div>
             <div style={{fontSize:13,fontWeight:600,color:'var(--ios-label2)',textTransform:'uppercase',
-              letterSpacing:0.5,marginBottom:4}}>Daily Routines</div>
+              letterSpacing:0.5,marginBottom:4}}>Retained Day Flow</div>
             <div style={{fontSize:22,fontWeight:700,color:'var(--ios-label)',letterSpacing:'-0.3px',marginBottom:4}}>
-              {totalCount>0?Math.round(completedCount/totalCount*100):0}% Complete
+              {pct}% Completed
             </div>
             <div className="ios-pill ios-pill-indigo" style={{fontSize:12}}>
-              🌊 Auto-synced to Live Time
+              🌊 Chronological Flow ({allFlowItems.filter(f=>f.isRoutine).length} Habits · {allFlowItems.filter(f=>!f.isRoutine).length} Tasks)
             </div>
           </div>
         </div>
       </div>
 
-      {/* Segment */}
-      <div className="ios-segment">
+      {/* Segment Switcher */}
+      <div className="ios-segment" style={{marginBottom:10}}>
         <button className={`ios-segment-item${segment==='timeline'?' active':''}`}
-          onClick={() => setSegment('timeline')}>Timeline</button>
+          onClick={() => setSegment('timeline')}>Timeline Flow</button>
         <button className={`ios-segment-item${segment==='habits'?' active':''}`}
-          onClick={() => setSegment('habits')}>Habits</button>
+          onClick={() => setSegment('habits')}>Habits Overview</button>
       </div>
 
       {segment === 'timeline' ? (
-        /* Timeline view */
-        <div className="flow-timeline">
-          {Object.entries(groups).map(([block, items]) => (
-            <div key={block}>
-              {/* Time block header */}
-              <div style={{
-                display:'flex',alignItems:'center',gap:8,
-                marginBottom:8, marginLeft:52, marginTop:4,
-              }}>
-                <span style={{fontSize:13,fontWeight:600,color:'var(--ios-label3)',
-                  textTransform:'uppercase',letterSpacing:0.5}}>
-                  {block}
-                </span>
-              </div>
+        <>
+          {/* Filter pills: All / Routines / Tasks */}
+          <div className="filter-scroll" style={{padding:'0 16px', marginBottom:12}}>
+            {(['all', 'routines', 'tasks'] as const).map(f => (
+              <button
+                key={f}
+                className={`filter-pill${filter===f?' active':''}`}
+                onClick={() => setFilter(f)}
+                style={{textTransform:'capitalize'}}
+              >
+                {f === 'all' ? 'All Flow' : f}
+              </button>
+            ))}
+          </div>
 
-              {items.map(r => {
-                const status = routineStatus(r);
-                const isLiveCurrent = r.id === liveActiveId;
-                return (
-                  <div
-                    key={r.id}
-                    ref={isLiveCurrent ? liveRef : undefined}
-                    className="flow-item"
-                    onClick={() => onOpenRoutineModal(r)}
-                  >
-                    {/* Node */}
-                    <div className={`flow-node ${status}`} style={{
-                      boxShadow: isLiveCurrent ? '0 0 16px rgba(94, 92, 230, 0.7)' : 'none'
-                    }}>
-                      {status === 'completed'
-                        ? <span style={{fontSize:16}}>✓</span>
-                        : <span style={{fontSize:18}}>{getEmoji(r.title)}</span>}
-                    </div>
+          {/* Timeline view retaining all events */}
+          <div className="flow-timeline">
+            {Object.entries(groups).map(([block, items]) => (
+              <div key={block}>
+                {/* Time block header */}
+                <div style={{
+                  display:'flex',alignItems:'center',gap:8,
+                  marginBottom:8, marginLeft:52, marginTop:4,
+                }}>
+                  <span style={{fontSize:13,fontWeight:600,color:'var(--ios-label3)',
+                    textTransform:'uppercase',letterSpacing:0.5}}>
+                    {block}
+                  </span>
+                </div>
 
-                    {/* Card */}
+                {items.map(item => {
+                  const isDone = item.status === 'completed';
+                  const isCurrent = item.id === liveActiveId;
+                  const isLiveProgress = item.status === 'in_progress';
+
+                  return (
                     <div
-                      className={`flow-content${isLiveCurrent || status === 'in-progress' ? ' flow-active-highlight' : ''}`}
-                      style={{ cursor: 'pointer' }}
+                      key={item.id}
+                      ref={isCurrent ? liveRef : undefined}
+                      className="flow-item"
+                      onClick={() => handleItemClick(item)}
                     >
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                        <div style={{display:'flex', alignItems:'center', gap:8}}>
-                          <span style={{fontSize:16,fontWeight:600,color:'var(--ios-label)',letterSpacing:'-0.2px'}}>
-                            {r.title}
-                          </span>
-                        </div>
-                        <button
-                          className={`ios-check${r.completedToday?' done':''}`}
-                          style={{width:22,height:22}}
-                          onClick={e => handleToggle(r, e)}
-                        >
-                          {r.completedToday && (
-                            <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-                              <path d="M1 4.5L4.5 8L11 1" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          )}
-                        </button>
+                      {/* Node icon */}
+                      <div className={`flow-node ${isDone ? 'completed' : isLiveProgress ? 'in-progress' : item.status}`}
+                        style={{
+                          boxShadow: isCurrent ? '0 0 16px rgba(94, 92, 230, 0.7)' : 'none',
+                          background: isDone ? 'var(--ios-green)' : item.isRoutine ? 'var(--ios-indigo)' : 'var(--ios-blue)',
+                        }}
+                      >
+                        {isDone ? (
+                          <span style={{fontSize:16, color:'#FFF'}}>✓</span>
+                        ) : (
+                          <span style={{fontSize:16}}>{getEmoji(item.title, item.icon)}</span>
+                        )}
                       </div>
-                      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                        {r.startTime && (
-                          <span style={{fontSize:12,fontWeight:600,color:
-                            (isLiveCurrent || status==='in-progress')?'var(--ios-indigo)':
-                            status==='completed'?'var(--ios-green)':
-                            status==='missed'?'var(--ios-red)':
-                            'var(--ios-label2)',
-                            fontVariantNumeric:'tabular-nums'}}>
-                            {r.startTime}
+
+                      {/* Card Content */}
+                      <div
+                        className={`flow-content${isCurrent || isLiveProgress ? ' flow-active-highlight' : ''}`}
+                        style={{ cursor: 'pointer', opacity: isDone ? 0.75 : 1 }}
+                      >
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                          <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+                            <span style={{
+                              fontSize:16, fontWeight:600,
+                              color: isDone ? 'var(--ios-label3)' : 'var(--ios-label)',
+                              textDecoration: isDone ? 'line-through' : 'none',
+                              letterSpacing:'-0.2px',
+                            }}>
+                              {item.title}
+                            </span>
+                            {!item.isRoutine && (
+                              <span style={{
+                                fontSize:10, fontWeight:700,
+                                padding:'2px 6px', borderRadius:6,
+                                background:'rgba(10, 132, 255, 0.15)',
+                                color:'var(--ios-blue)',
+                              }}>
+                                TASK
+                              </span>
+                            )}
+                            {item.missionTitle && (
+                              <span style={{
+                                fontSize:11, color:'var(--ios-purple)', fontWeight:600,
+                              }}>
+                                🎯 {item.missionTitle}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            className={`ios-check${isDone ? ' done' : ''}`}
+                            style={{width:22,height:22}}
+                            onClick={e => handleToggle(item, e)}
+                          >
+                            {isDone && (
+                              <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
+                                <path d="M1 4.5L4.5 8L11 1" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+
+                        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                          <span style={{
+                            fontSize:12, fontWeight:600,
+                            color: isLiveProgress ? 'var(--ios-indigo)' : isDone ? 'var(--ios-green)' : 'var(--ios-label2)',
+                            fontVariantNumeric:'tabular-nums',
+                          }}>
+                            {item.time} {item.endTime ? `– ${item.endTime}` : ''}
                           </span>
-                        )}
-                        {r.duration && (
-                          <span style={{fontSize:12,color:'var(--ios-label3)'}}>
-                            {r.duration >= 60
-                              ? `${(r.duration/60).toFixed(r.duration%60?1:0)}h`
-                              : `${r.duration}m`}
-                          </span>
-                        )}
-                        {status==='missed' && (
-                          <span className="ios-pill ios-pill-red" style={{fontSize:11}}>
-                            Missed
-                          </span>
-                        )}
+                          {item.durationMinutes && (
+                            <span style={{fontSize:12, color:'var(--ios-label3)'}}>
+                              {item.durationMinutes >= 60
+                                ? `${(item.durationMinutes/60).toFixed(item.durationMinutes%60?1:0)}h`
+                                : `${item.durationMinutes}m`}
+                            </span>
+                          )}
+                          {item.category && (
+                            <span style={{fontSize:12, color:'var(--ios-label3)'}}>
+                              {item.category}
+                            </span>
+                          )}
+                          {item.status === 'missed' && !isDone && (
+                            <span className="ios-pill ios-pill-red" style={{fontSize:11}}>
+                              Missed
+                            </span>
+                          )}
+                          {isLiveProgress && (
+                            <span className="ios-pill ios-pill-indigo" style={{fontSize:11}}>
+                              Now
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                  );
+                })}
+              </div>
+            ))}
 
-          {routines.length === 0 && (
-            <div style={{textAlign:'center',padding:'40px 20px'}}>
-              <div style={{fontSize:48,marginBottom:12}}>🌊</div>
-              <div style={{fontSize:20,fontWeight:600,color:'var(--ios-label)',marginBottom:6}}>
-                Set up your Flow
+            {filteredFlowItems.length === 0 && (
+              <div style={{textAlign:'center',padding:'40px 20px'}}>
+                <div style={{fontSize:48,marginBottom:12}}>🌊</div>
+                <div style={{fontSize:20,fontWeight:600,color:'var(--ios-label)',marginBottom:6}}>
+                  Nothing in this Flow
+                </div>
+                <div style={{fontSize:15,color:'var(--ios-label2)',lineHeight:1.5}}>
+                  Add tasks or daily routines to flow through your day.
+                </div>
               </div>
-              <div style={{fontSize:15,color:'var(--ios-label2)',lineHeight:1.5}}>
-                Add your daily routines and build a life that flows.
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </>
       ) : (
         /* Habits view */
         <div style={{padding:'8px 16px 20px'}}>
@@ -299,7 +375,7 @@ export const FlowView: React.FC<FlowViewProps> = ({ routines, onRefresh, onOpenR
             {routines.map(r => (
               <div key={r.id} className="ios-row" style={{cursor:'pointer'}}
                 onClick={() => onOpenRoutineModal(r)}>
-                <span style={{fontSize:22,marginRight:12}}>{getEmoji(r.title)}</span>
+                <span style={{fontSize:22,marginRight:12}}>{getEmoji(r.title, r.icon)}</span>
                 <div style={{flex:1}}>
                   <div style={{fontSize:16,fontWeight:500,color:'var(--ios-label)'}}>{r.title}</div>
                   <div style={{fontSize:13,color:'var(--ios-label3)',marginTop:2}}>

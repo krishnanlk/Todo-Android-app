@@ -204,6 +204,31 @@ export const ReviewService = {
       completedAt: t.completedAt || t.dueDate,
     }));
 
+    const topStrengths: string[] = [];
+    if (tasksCompleted > 0) {
+      topStrengths.push(`Completed ${tasksCompleted} tasks in ${monthName} with a ${completionRate}% overall completion rate.`);
+    } else {
+      topStrengths.push(`Monthly roadmap configured with ${tasksPlanned} targets.`);
+    }
+    if (completedMissions > 0) {
+      topStrengths.push(`Successfully finished ${completedMissions} key missions this month.`);
+    } else if (missions.length > 0) {
+      topStrengths.push(`Active progress across ${missions.length} ongoing missions.`);
+    }
+    if (stats.routineConsistency >= 70) {
+      topStrengths.push(`Sustained high ${stats.routineConsistency}% routine consistency.`);
+    }
+
+    const areasToImprove: string[] = [];
+    if (carryOverTasks > 0) {
+      areasToImprove.push(`Clear ${carryOverTasks} carryover tasks to maintain high monthly velocity.`);
+    }
+    if (completionRate < 75 && tasksPlanned > 0) {
+      areasToImprove.push('Aim for earlier completions to raise the monthly win rate above 75%.');
+    } else {
+      areasToImprove.push('Great execution rhythm — maintain this velocity into next month.');
+    }
+
     return {
       id: `monthly-${monthKey}`,
       monthName,
@@ -217,6 +242,8 @@ export const ReviewService = {
       carryOverTasks,
       mostActiveCategories,
       comparisonWithLastMonth,
+      topStrengths,
+      areasToImprove,
       spokenScript,
       generatedAt: new Date().toISOString(),
       completedTasksList,

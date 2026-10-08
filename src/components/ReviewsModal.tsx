@@ -390,13 +390,13 @@ export const ReviewsModal: React.FC<ReviewsModalProps> = ({ isOpen, onClose }) =
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--ios-label3)' }}>
               Insights
             </div>
-            {weeklyReview.topStrengths.slice(0, 2).map((str, i) => (
+            {(currentReview.topStrengths || []).slice(0, 2).map((str, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ios-label2)' }}>
                 <CheckCircle2 size={14} color="var(--ios-green)" style={{ flexShrink: 0 }} />
                 <span>{str}</span>
               </div>
             ))}
-            {weeklyReview.areasToImprove.slice(0, 1).map((area, i) => (
+            {(currentReview.areasToImprove || []).slice(0, 1).map((area, i) => (
               <div key={`imp-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ios-label2)' }}>
                 <Target size={14} color="var(--ios-orange)" style={{ flexShrink: 0 }} />
                 <span>{area}</span>

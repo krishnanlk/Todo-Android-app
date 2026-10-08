@@ -155,6 +155,8 @@ export interface MonthlyReviewData {
   carryOverTasks: number;
   mostActiveCategories: string[];
   comparisonWithLastMonth: string;
+  topStrengths?: string[];
+  areasToImprove?: string[];
   spokenScript: string;
   generatedAt: string;
   completedTasksList?: { id: string; title: string; category: string; completedAt?: string }[];

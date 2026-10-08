@@ -299,8 +299,10 @@ export default function App() {
           {tab === 'flow' && (
             <FlowView
               routines={routines}
+              tasks={tasks}
               onRefresh={reload}
               onOpenRoutineModal={openRoutine}
+              onOpenTaskModal={openTask}
             />
           )}
           {tab === 'missions' && (

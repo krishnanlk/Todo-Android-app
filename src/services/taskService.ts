@@ -21,7 +21,14 @@ export const TaskService = {
 
   getTodayTasks: (): Task[] => {
     const today = getTodayKey();
-    return StorageService.getTasks().filter((t) => t.dueDate === today && t.status !== 'archived');
+    return StorageService.getTasks().filter((t) => {
+      if (t.status === 'archived') return false;
+      // Scheduled for today or unscheduled
+      if (t.dueDate === today || !t.dueDate) return true;
+      // Unfinished tasks from previous days automatically line up in today until completed
+      if (t.dueDate < today && t.status !== 'completed') return true;
+      return false;
+    });
   },
 
   getUpcomingTasks: (): Task[] => {
@@ -40,6 +47,7 @@ export const TaskService = {
     const tasks = StorageService.getTasks();
     const newTask: Task = {
       ...taskData,
+      dueDate: taskData.dueDate || getTodayKey(),
       id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       createdAt: new Date().toISOString(),
       status: taskData.status || 'upcoming',

@@ -708,15 +708,17 @@ export const VoiceAssistantService = {
       };
     }
 
-    // 14. INTENT: CREATE TASK (Supports "set an task of 3pm as completion of homw work", "add task", "remind me", etc.)
+    // 14. INTENT: CREATE / ASSIGN TASK
     const isTaskCreation =
-      /^(?:please\s+)?(?:set|add|create|schedule|put|make)\s+(?:a\s+|an\s+)?task\b/i.test(text) ||
-      /\b(?:create|add|set|schedule)\s+(?:a\s+|an\s+)?task\b/i.test(text) ||
+      /^(?:please\s+)?(?:set|add|create|schedule|put|make|assign)\s+(?:a\s+|an\s+|me\s+a\s+)?task\b/i.test(text) ||
+      /\b(?:create|add|set|schedule|assign)\s+(?:a\s+|an\s+)?task\b/i.test(text) ||
       /^(?:please\s+)?remind\s+me\s+to\b/i.test(text) ||
-      /^(?:add|schedule|set)\s+task\b/i.test(lower) ||
+      /^(?:add|schedule|set|assign)\s+task\b/i.test(lower) ||
       lower.startsWith('add ') ||
       lower.startsWith('schedule ') ||
-      lower.includes('new task');
+      lower.startsWith('assign ') ||
+      lower.includes('new task') ||
+      lower.startsWith('task assignment');
 
     if (isTaskCreation) {
       const { dateKey, time: resolvedTime } = resolveDateWord(text);
@@ -728,11 +730,12 @@ export const VoiceAssistantService = {
 
       // Clean task title from conversational phrasing
       let title = text
-        .replace(/^(?:please\s+)?(?:set|add|create|schedule|put|make)\s+(?:a\s+|an\s+)?task\s*/i, '')
+        .replace(/^(?:task\s+assignment\s*:\s*|task\s+assignment\s+)/i, '')
+        .replace(/^(?:please\s+)?(?:set|add|create|schedule|put|make|assign)\s+(?:a\s+|an\s+|me\s+a\s+)?task\s*(?:for|to|of|named|called)?\s*/i, '')
         .replace(/^(?:please\s+)?remind\s+me\s+to\s*/i, '')
-        .replace(/^(?:please\s+)?(?:add|schedule|set)\s+/i, '');
+        .replace(/^(?:please\s+)?(?:add|schedule|set|assign)\s+/i, '');
 
-      // Remove time phrase if it was at the beginning (e.g. "of 3pm as completion of homw work")
+      // Remove time phrase if it was at the beginning (e.g. "of 3pm as completion of homework")
       if (timePhrase) {
         const escapedPhrase = timePhrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         title = title
@@ -803,7 +806,7 @@ export const VoiceAssistantService = {
       }
 
       const dateWord = newTask.dueDate === getTodayKey() ? 'today' : (newTask.dueDate === resolveDateWord('tomorrow').dateKey ? 'tomorrow' : `on ${newTask.dueDate}`);
-      const reply = `Done! The work of task addition is done. I've added "${newTask.title}" for ${dateWord} at ${displayTime}.`;
+      const reply = `Done! I've scheduled "${newTask.title}" for ${dateWord} at ${displayTime}.`;
 
       return {
         intent: 'CREATE_TASK',
