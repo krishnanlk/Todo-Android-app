@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LineUp</string>
+    <string name="title_activity_main">LineUp</string>
+    <string name="package_name">com.lineup.productivity</string>
+    <string name="custom_url_scheme">com.lineup.productivity</string>
+    <string name="widget_flow_desc">Displays your current Life Flow daily routine</string>
+    <string name="widget_progress_desc">Shows today completion percentage and task stats</string>
+    <string name="widget_voice_desc">Instant one-tap access to LineUp Voice Assistant</string>
+    <string name="widget_mission_desc">Active Mission progress and days remaining tracker</string>
+</resources>

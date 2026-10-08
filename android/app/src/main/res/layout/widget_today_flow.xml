@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_flow_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header bar -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_header_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LIFE FLOW 🌊"
+            android:textColor="#5E5CE6"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_flow_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="Live Schedule"
+            android:textColor="#8E8E93"
+            android:textSize="11sp" />
+    </RelativeLayout>
+
+    <!-- Divider (Using TextView instead of View for 100% RemoteViews compatibility) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#38383A"
+        android:layout_marginBottom="6dp" />
+
+    <!-- ROW 1 -->
+    <LinearLayout
+        android:id="@+id/flow_row_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_1_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_time_pill"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:textColor="#64D2FF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="07:00" />
+
+        <TextView
+            android:id="@+id/row_1_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:text="Morning Routine" />
+
+        <TextView
+            android:id="@+id/row_1_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#30D158"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="Done ✓" />
+    </LinearLayout>
+
+    <!-- ROW 2 -->
+    <LinearLayout
+        android:id="@+id/flow_row_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_2_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_time_pill"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:textColor="#64D2FF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="09:30" />
+
+        <TextView
+            android:id="@+id/row_2_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:text="College / Deep Study" />
+
+        <TextView
+            android:id="@+id/row_2_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#BF5AF2"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="Active ⚡" />
+    </LinearLayout>
+
+    <!-- ROW 3 -->
+    <LinearLayout
+        android:id="@+id/flow_row_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_3_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_time_pill"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:textColor="#64D2FF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="14:00" />
+
+        <TextView
+            android:id="@+id/row_3_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:text="AI Project Work" />
+
+        <TextView
+            android:id="@+id/row_3_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#8E8E93"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="Upcoming" />
+    </LinearLayout>
+
+    <!-- ROW 4 -->
+    <LinearLayout
+        android:id="@+id/flow_row_4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/row_4_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_time_pill"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:textColor="#64D2FF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="18:00" />
+
+        <TextView
+            android:id="@+id/row_4_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:text="Exercise &amp; Fitness" />
+
+        <TextView
+            android:id="@+id/row_4_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#8E8E93"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:text="Upcoming" />
+    </LinearLayout>
+
+    <!-- Footer label -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginTop="2dp"
+        android:text="Tap to open Life Flow ›"
+        android:textColor="#5E5CE6"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+</LinearLayout>
