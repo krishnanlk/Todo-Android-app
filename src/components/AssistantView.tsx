@@ -99,6 +99,16 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
     }, 60);
   }, []); // eslint-disable-line
 
+  const startVoiceSession = useCallback(() => {
+    if (voiceState === 'speaking') {
+      VoiceAssistantService.stopSpeaking();
+    }
+    VoiceAssistantService.resetTranscript();
+    setVoiceTranscript('');
+    setIsVoiceMode(true);
+    VoiceAssistantService.startListening();
+  }, [voiceState]);
+
   useEffect(() => {
     VoiceAssistantService.initSpeechRecognition(
       (text: string) => {
@@ -114,17 +124,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
     };
     window.addEventListener('lineup-voice-autolisten', autoHandler);
     return () => window.removeEventListener('lineup-voice-autolisten', autoHandler);
-  }, []); // eslint-disable-line
-
-  const startVoiceSession = () => {
-    if (voiceState === 'speaking') {
-      VoiceAssistantService.stopSpeaking();
-    }
-    VoiceAssistantService.resetTranscript();
-    setVoiceTranscript('');
-    setIsVoiceMode(true);
-    VoiceAssistantService.startListening();
-  };
+  }, [startVoiceSession]);
 
   const handleVoiceCancel = () => {
     VoiceAssistantService.abortListening();
