@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Web%20%7C%20iOS-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/Capacitor-v8-brightgreen?style=flat-square" alt="Capacitor" />
   <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square" alt="React" />
-  <img src="https://img.shields.io/badge/Release-v1.1.1-blueviolet?style=flat-square" alt="Release v1.1.1" />
+  <img src="https://img.shields.io/badge/Release-v1.2.1-blueviolet?style=flat-square" alt="Release v1.2.1" />
   <img src="https://img.shields.io/badge/TypeScript-v6-blue?style=flat-square" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-v8-646CFF?style=flat-square" alt="Vite" />
   <img src="https://img.shields.io/badge/Android%20SDK-34+-success?style=flat-square" alt="Android SDK" />
@@ -20,20 +20,20 @@
 
 ---
 
-## 📦 Direct APK Downloads (v1.1.1)
+## 📦 Direct APK Downloads (v1.2.1)
 
-You can download and install the latest compiled Android package directly from the repository or from [GitHub Releases v1.1.1](https://github.com/krishnanlk/Todo-Android-app/releases/tag/v1.1.1):
+You can download and install the latest compiled Android package directly from the repository or from [GitHub Releases v1.2.1](https://github.com/krishnanlk/Todo-Android-app/releases/tag/v1.2.1):
 
 | Build Type | File Path | Description | Download |
 |---|---|---|---|
-| 🟢 **Debug APK (v1.1.1)** | [`apk/LineUp-debug.apk`](apk/LineUp-debug.apk) | Latest build with ChatGPT Voice Capsule (Image 4), feedback loop fix, witty notifications, and 12 AM reset (4.4 MB) | [Download Debug APK (v1.1.1)](apk/LineUp-debug.apk) |
+| 🟢 **Debug APK (v1.2.1)** | [`apk/LineUp-debug.apk`](apk/LineUp-debug.apk) | Latest build with ChatGPT Voice Capsule (Image 4), feedback loop fix, witty notifications, and 12 AM reset (4.4 MB) | [Download Debug APK (v1.2.1)](apk/LineUp-debug.apk) |
 | 🚀 **Release APK (v1.0.0)** | [`apk/LineUp-release-unsigned.apk`](apk/LineUp-release-unsigned.apk) | Lightweight release package | [Download Release APK](apk/LineUp-release-unsigned.apk) |
 
 > 💡 **Installation Note**: To install on Android, download the `.apk` file to your mobile device, tap to install, and allow **"Install from unknown sources"** if prompted by Android security settings.
 
 ---
 
-## 🚀 What's New in Version 1.1.1
+## 🚀 What's New in Version 1.2.1
 
 ### 1. 🎙️ ChatGPT Voice Start & Stop Flow (Image 4 UI)
 * **Exact ChatGPT Capsule Bar**: Replaces the input bar with an ultra-sleek dark capsule featuring:
