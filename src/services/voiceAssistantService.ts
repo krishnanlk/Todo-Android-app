@@ -164,13 +164,21 @@ export const VoiceAssistantService = {
   // Speech Recognition instance
   recognition: null as any,
   isListening: false,
+  userWantsListening: false,
+  baseTranscript: '',
+  currentFullTranscript: '',
+  onTranscriptCallback: null as ((text: string, isFinal: boolean) => void) | null,
+  onStateChangeCallback: null as ((state: AssistantState) => void) | null,
   synth: typeof window !== 'undefined' ? window.speechSynthesis : null,
 
   initSpeechRecognition: (
-    onResult: (text: string) => void,
+    onTranscript: (text: string, isFinal: boolean) => void,
     onStateChange: (state: AssistantState) => void
   ): boolean => {
     if (typeof window === 'undefined') return false;
+
+    VoiceAssistantService.onTranscriptCallback = onTranscript;
+    VoiceAssistantService.onStateChangeCallback = onStateChange;
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -182,29 +190,69 @@ export const VoiceAssistantService = {
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
         VoiceAssistantService.isListening = true;
-        onStateChange('listening');
+        if (VoiceAssistantService.onStateChangeCallback) {
+          VoiceAssistantService.onStateChangeCallback('listening');
+        }
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        onStateChange('processing');
-        onResult(transcript);
+        let finalPart = '';
+        let interimPart = '';
+        for (let i = 0; i < event.results.length; ++i) {
+          const res = event.results[i];
+          if (res.isFinal) {
+            finalPart += res[0].transcript + ' ';
+          } else {
+            interimPart += res[0].transcript;
+          }
+        }
+
+        const base = VoiceAssistantService.baseTranscript;
+        const total = (base ? base + ' ' : '') + finalPart + interimPart;
+        const cleaned = total.trim();
+        VoiceAssistantService.currentFullTranscript = cleaned;
+
+        if (VoiceAssistantService.onTranscriptCallback) {
+          VoiceAssistantService.onTranscriptCallback(cleaned, !interimPart && !!finalPart);
+        }
       };
 
       recognition.onerror = (event: any) => {
         console.warn('Speech recognition error:', event.error);
-        VoiceAssistantService.isListening = false;
-        onStateChange('error');
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          VoiceAssistantService.userWantsListening = false;
+          VoiceAssistantService.isListening = false;
+          if (VoiceAssistantService.onStateChangeCallback) {
+            VoiceAssistantService.onStateChangeCallback('error');
+          }
+        }
       };
 
       recognition.onend = () => {
         VoiceAssistantService.isListening = false;
+        // If user is still in listening session (e.g. paused speech or WebView killed session), auto-restart
+        if (VoiceAssistantService.userWantsListening) {
+          VoiceAssistantService.baseTranscript = VoiceAssistantService.currentFullTranscript;
+          try {
+            recognition.start();
+          } catch (err) {
+            console.warn('Speech recognition restart error:', err);
+            VoiceAssistantService.userWantsListening = false;
+            if (VoiceAssistantService.onStateChangeCallback) {
+              VoiceAssistantService.onStateChangeCallback('idle');
+            }
+          }
+        } else {
+          if (VoiceAssistantService.onStateChangeCallback) {
+            VoiceAssistantService.onStateChangeCallback('idle');
+          }
+        }
       };
 
       VoiceAssistantService.recognition = recognition;
@@ -215,7 +263,13 @@ export const VoiceAssistantService = {
     }
   },
 
+  resetTranscript: () => {
+    VoiceAssistantService.baseTranscript = '';
+    VoiceAssistantService.currentFullTranscript = '';
+  },
+
   startListening: () => {
+    VoiceAssistantService.userWantsListening = true;
     if (VoiceAssistantService.recognition && !VoiceAssistantService.isListening) {
       try {
         VoiceAssistantService.recognition.start();
@@ -226,6 +280,7 @@ export const VoiceAssistantService = {
   },
 
   stopListening: () => {
+    VoiceAssistantService.userWantsListening = false;
     if (VoiceAssistantService.recognition && VoiceAssistantService.isListening) {
       try {
         VoiceAssistantService.recognition.stop();
@@ -233,9 +288,33 @@ export const VoiceAssistantService = {
         console.warn('Stop listening error', err);
       }
     }
+    VoiceAssistantService.isListening = false;
+    if (VoiceAssistantService.onStateChangeCallback) {
+      VoiceAssistantService.onStateChangeCallback('idle');
+    }
+  },
+
+  abortListening: () => {
+    VoiceAssistantService.userWantsListening = false;
+    VoiceAssistantService.baseTranscript = '';
+    VoiceAssistantService.currentFullTranscript = '';
+    if (VoiceAssistantService.recognition) {
+      try {
+        VoiceAssistantService.recognition.abort();
+      } catch (err) {
+        console.warn('Abort listening error', err);
+      }
+    }
+    VoiceAssistantService.isListening = false;
+    if (VoiceAssistantService.onStateChangeCallback) {
+      VoiceAssistantService.onStateChangeCallback('idle');
+    }
   },
 
   speak: (text: string, onEnd?: () => void, force: boolean = false) => {
+    // ALWAYS stop any speech recognition before speaking to prevent microphone loopback
+    VoiceAssistantService.stopListening();
+
     const settings = StorageService.getSettings();
     if (!force && !settings.voiceEnabled) {
       if (onEnd) onEnd();

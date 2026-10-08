@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { VoiceAssistantService } from '../services/voiceAssistantService';
 import { AssistantState } from '../types';
 import type { TabType } from '../App';
-import { Mic, ArrowUp, Sparkles, Volume2 } from 'lucide-react';
+import { Mic, ArrowUp, Sparkles, Volume2, X, Square } from 'lucide-react';
 
 interface AssistantViewProps {
   onRefreshData: () => void;
@@ -32,7 +32,8 @@ function getTime() {
 
 export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onNavigateToTab }) => {
   const [voiceState, setVoiceState] = useState<AssistantState>('idle');
-  const [transcript, setTranscript] = useState('');
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -49,7 +50,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
   // Auto-scroll to bottom of chat
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
-  }, [chatMessages, voiceState, transcript]);
+  }, [chatMessages, voiceState, isVoiceMode, voiceTranscript]);
 
   // Clean up keyboard class on unmount
   useEffect(() => {
@@ -101,8 +102,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
   useEffect(() => {
     VoiceAssistantService.initSpeechRecognition(
       (text: string) => {
-        setTranscript(text);
-        processInput(text);
+        setVoiceTranscript(text);
       },
       (state: AssistantState) => {
         setVoiceState(state);
@@ -110,28 +110,56 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
     );
 
     const autoHandler = () => {
-      setTranscript('');
-      VoiceAssistantService.startListening();
+      startVoiceSession();
     };
     window.addEventListener('lineup-voice-autolisten', autoHandler);
     return () => window.removeEventListener('lineup-voice-autolisten', autoHandler);
-  }, [processInput]);
+  }, []); // eslint-disable-line
 
-  const handleMicTap = () => {
+  const startVoiceSession = () => {
+    if (voiceState === 'speaking') {
+      VoiceAssistantService.stopSpeaking();
+    }
+    VoiceAssistantService.resetTranscript();
+    setVoiceTranscript('');
+    setIsVoiceMode(true);
+    VoiceAssistantService.startListening();
+  };
+
+  const handleVoiceCancel = () => {
+    VoiceAssistantService.abortListening();
+    setIsVoiceMode(false);
+    setVoiceTranscript('');
+    setVoiceState('idle');
+  };
+
+  const handleVoiceToggleRecord = () => {
     if (voiceState === 'listening') {
       VoiceAssistantService.stopListening();
-      setVoiceState('idle');
-      return;
+    } else {
+      VoiceAssistantService.startListening();
     }
+  };
+
+  const handleVoiceSend = () => {
+    VoiceAssistantService.stopListening();
+    const textToSend = voiceTranscript.trim();
+    setIsVoiceMode(false);
+    setVoiceTranscript('');
+    if (textToSend) {
+      processInput(textToSend);
+    } else {
+      setVoiceState('idle');
+    }
+  };
+
+  const handleMicTap = () => {
     if (voiceState === 'speaking') {
       VoiceAssistantService.stopSpeaking();
       setVoiceState('idle');
       return;
     }
-    if (voiceState !== 'idle') return;
-
-    setTranscript('');
-    VoiceAssistantService.startListening();
+    startVoiceSession();
   };
 
   const handleTextSend = () => {
@@ -307,41 +335,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
           </div>
         ))}
 
-        {/* Live listening transcript preview */}
-        {voiceState === 'listening' && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 14px',
-              borderRadius: 16,
-              background: 'rgba(255, 69, 58, 0.12)',
-              border: '1px solid rgba(255, 69, 58, 0.25)',
-              alignSelf: 'flex-start',
-              maxWidth: '85%',
-              animation: 'pulse 1.5s infinite',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 3 }}>
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 3,
-                    height: 12,
-                    background: 'var(--ios-red)',
-                    borderRadius: 2,
-                    animation: `waveform-bar 0.8s ease-in-out infinite alternate ${i * 0.2}s`,
-                  }}
-                />
-              ))}
-            </div>
-            <span style={{ fontSize: 13, color: 'var(--ios-red)', fontWeight: 500 }}>
-              {transcript || 'Listening... speak now'}
-            </span>
-          </div>
-        )}
+
 
         {/* Processing indicator */}
         {voiceState === 'processing' && (
@@ -417,111 +411,322 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
           zIndex: 20,
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: 'rgba(255, 255, 255, 0.07)',
-            borderRadius: 26,
-            padding: '4px 6px 4px 16px',
-            border: isInputFocused
-              ? '1px solid var(--ios-blue)'
-              : '1px solid rgba(255, 255, 255, 0.12)',
-            transition: 'border 0.2s ease, box-shadow 0.2s ease',
-            boxShadow: isInputFocused ? '0 0 12px rgba(10, 132, 255, 0.25)' : 'none',
-          }}
-        >
-          {/* Text Input */}
-          <input
-            ref={inputRef}
-            value={typedInput}
-            onChange={(e) => setTypedInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleTextSend()}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder={voiceState === 'listening' ? 'Listening...' : 'Ask LineUp Assistant...'}
-            disabled={voiceState === 'listening' || voiceState === 'processing'}
-            style={{
-              flex: 1,
-              background: 'none',
-              border: 'none',
-              outline: 'none',
-              fontFamily: 'var(--font)',
-              fontSize: 15,
-              color: 'var(--ios-label)',
-              padding: '8px 0',
-            }}
-          />
-
-          {/* ChatGPT-style buttons container: Voice Mic beside Send */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            {/* Voice Input Button */}
-            <button
-              onClick={handleMicTap}
-              title={voiceState === 'listening' ? 'Stop listening' : 'Talk with voice'}
+        {isVoiceMode ? (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Live speech preview chip */}
+            <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background:
-                  voiceState === 'listening'
-                    ? 'var(--ios-red)'
-                    : voiceState === 'speaking'
-                    ? 'rgba(48, 209, 88, 0.2)'
-                    : 'rgba(255, 255, 255, 0.08)',
-                border:
-                  voiceState === 'listening'
-                    ? '2px solid rgba(255, 69, 58, 0.6)'
-                    : voiceState === 'speaking'
-                    ? '1.5px solid var(--ios-green)'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                color:
-                  voiceState === 'listening'
-                    ? '#FFF'
-                    : voiceState === 'speaking'
-                    ? 'var(--ios-green)'
-                    : 'var(--ios-label2)',
-                boxShadow:
-                  voiceState === 'listening'
-                    ? '0 0 14px rgba(255, 69, 58, 0.5)'
-                    : 'none',
+                gap: 8,
+                padding: '6px 14px',
+                marginBottom: 8,
+                background: 'rgba(28, 28, 30, 0.9)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 14,
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.35)',
               }}
             >
-              <Mic size={18} />
-            </button>
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: voiceState === 'listening' ? '#30D158' : '#FF9F0A',
+                  boxShadow: voiceState === 'listening' ? '0 0 8px #30D158' : 'none',
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: 13,
+                  color: voiceTranscript ? '#FFFFFF' : 'rgba(255, 255, 255, 0.55)',
+                  fontStyle: voiceTranscript ? 'normal' : 'italic',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {voiceTranscript || (voiceState === 'listening' ? 'Listening... Speak now' : 'Paused. Tap send or resume.')}
+              </span>
+            </div>
 
-            {/* Send Button */}
-            <button
-              onClick={handleTextSend}
-              disabled={!typedInput.trim() || voiceState !== 'idle'}
-              title="Send message"
+            {/* ChatGPT Voice Capsule bar (Image 4) */}
+            <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background:
-                  typedInput.trim() && voiceState === 'idle'
-                    ? 'var(--ios-blue)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                border: 'none',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: typedInput.trim() && voiceState === 'idle' ? 'pointer' : 'default',
-                transition: 'all 0.2s ease',
-                color: typedInput.trim() && voiceState === 'idle' ? '#FFF' : 'rgba(255, 255, 255, 0.25)',
+                justifyContent: 'space-between',
+                gap: 8,
+                background: '#141416',
+                borderRadius: 9999,
+                padding: '5px 8px',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                boxShadow: '0 4px 18px rgba(0, 0, 0, 0.5)',
+                minHeight: 52,
               }}
             >
-              <ArrowUp size={18} strokeWidth={2.4} />
-            </button>
+              {/* Cancel Button [ ✕ ] */}
+              <button
+                onClick={handleVoiceCancel}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#E5E5EA',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'background 0.2s ease',
+                }}
+                title="Cancel voice input"
+              >
+                <X size={18} strokeWidth={2.4} />
+              </button>
+
+              {/* Waveform track with dotted line */}
+              <div
+                style={{
+                  flex: 1,
+                  position: 'relative',
+                  height: 38,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 4px',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Horizontal dotted track */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    backgroundImage: 'radial-gradient(circle, rgba(255, 255, 255, 0.45) 1.2px, transparent 1.2px)',
+                    backgroundSize: '8px 2px',
+                    backgroundRepeat: 'repeat-x',
+                    backgroundPosition: 'center',
+                  }}
+                />
+
+                {/* Animated waveform sound bars */}
+                <div
+                  style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3.5,
+                    background: '#141416',
+                    padding: '0 8px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 3,
+                      height: voiceState === 'listening' ? 10 : 4,
+                      borderRadius: 3,
+                      background: '#FFFFFF',
+                      opacity: voiceState === 'listening' ? 0.9 : 0.4,
+                      animation: voiceState === 'listening' ? 'chatgpt-wave 0.6s ease-in-out infinite alternate' : 'none',
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 3,
+                      height: voiceState === 'listening' ? 18 : 4,
+                      borderRadius: 3,
+                      background: '#FFFFFF',
+                      opacity: voiceState === 'listening' ? 0.9 : 0.4,
+                      animation: voiceState === 'listening' ? 'chatgpt-wave 0.45s ease-in-out 0.15s infinite alternate' : 'none',
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 3,
+                      height: voiceState === 'listening' ? 24 : 6,
+                      borderRadius: 3,
+                      background: '#FFFFFF',
+                      opacity: voiceState === 'listening' ? 1 : 0.5,
+                      animation: voiceState === 'listening' ? 'chatgpt-wave 0.7s ease-in-out 0.05s infinite alternate' : 'none',
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 3,
+                      height: voiceState === 'listening' ? 16 : 4,
+                      borderRadius: 3,
+                      background: '#FFFFFF',
+                      opacity: voiceState === 'listening' ? 0.9 : 0.4,
+                      animation: voiceState === 'listening' ? 'chatgpt-wave 0.5s ease-in-out 0.2s infinite alternate' : 'none',
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 3,
+                      height: voiceState === 'listening' ? 8 : 4,
+                      borderRadius: 3,
+                      background: '#FFFFFF',
+                      opacity: voiceState === 'listening' ? 0.9 : 0.4,
+                      animation: voiceState === 'listening' ? 'chatgpt-wave 0.65s ease-in-out 0.1s infinite alternate' : 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Right buttons: [ ⏹ ] and [ ↑ ] */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                {/* Stop / Record toggle button [ ⏹ ] */}
+                <button
+                  onClick={handleVoiceToggleRecord}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title={voiceState === 'listening' ? 'Stop recording' : 'Resume recording'}
+                >
+                  <Square size={13} fill="#FFFFFF" strokeWidth={0} />
+                </button>
+
+                {/* Send Button [ ↑ ] */}
+                <button
+                  onClick={handleVoiceSend}
+                  disabled={!voiceTranscript.trim() && voiceState !== 'listening'}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '50%',
+                    background: '#0A84FF',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 10px rgba(10, 132, 255, 0.35)',
+                    transition: 'transform 0.15s ease, opacity 0.2s ease',
+                    opacity: (!voiceTranscript.trim() && voiceState !== 'listening') ? 0.5 : 1,
+                  }}
+                  title="Send voice message"
+                >
+                  <ArrowUp size={20} strokeWidth={2.6} />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'rgba(255, 255, 255, 0.07)',
+              borderRadius: 26,
+              padding: '4px 6px 4px 16px',
+              border: isInputFocused
+                ? '1px solid var(--ios-blue)'
+                : '1px solid rgba(255, 255, 255, 0.12)',
+              transition: 'border 0.2s ease, box-shadow 0.2s ease',
+              boxShadow: isInputFocused ? '0 0 12px rgba(10, 132, 255, 0.25)' : 'none',
+            }}
+          >
+            {/* Text Input */}
+            <input
+              ref={inputRef}
+              value={typedInput}
+              onChange={(e) => setTypedInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleTextSend()}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              placeholder={voiceState === 'speaking' ? 'Speaking response...' : 'Ask LineUp Assistant...'}
+              disabled={voiceState === 'processing'}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                fontFamily: 'var(--font)',
+                fontSize: 15,
+                color: 'var(--ios-label)',
+                padding: '8px 0',
+              }}
+            />
+
+            {/* ChatGPT-style buttons container: Voice Mic beside Send */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {/* Voice Input Button */}
+              <button
+                onClick={handleMicTap}
+                title="Talk with voice"
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background:
+                    voiceState === 'speaking'
+                      ? 'rgba(48, 209, 88, 0.2)'
+                      : 'rgba(255, 255, 255, 0.08)',
+                  border:
+                    voiceState === 'speaking'
+                      ? '1.5px solid var(--ios-green)'
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  color:
+                    voiceState === 'speaking'
+                      ? 'var(--ios-green)'
+                      : 'var(--ios-label2)',
+                }}
+              >
+                <Mic size={18} />
+              </button>
+
+              {/* Send Button */}
+              <button
+                onClick={handleTextSend}
+                disabled={!typedInput.trim() || voiceState !== 'idle'}
+                title="Send message"
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background:
+                    typedInput.trim() && voiceState === 'idle'
+                      ? 'var(--ios-blue)'
+                      : 'rgba(255, 255, 255, 0.05)',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: typedInput.trim() && voiceState === 'idle' ? 'pointer' : 'default',
+                  transition: 'all 0.2s ease',
+                  color: typedInput.trim() && voiceState === 'idle' ? '#FFF' : 'rgba(255, 255, 255, 0.25)',
+                }}
+              >
+                <ArrowUp size={18} strokeWidth={2.4} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dynamic bottom spacer: hides when typing/keyboard open so input docks cleanly, gives space for tab bar otherwise */}
