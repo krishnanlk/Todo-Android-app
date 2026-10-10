@@ -11,6 +11,7 @@ import { AndroidWidgetsModal } from './components/AndroidWidgetsModal';
 import { CarryoverModal } from './components/CarryoverModal';
 import { SettingsModal }  from './components/SettingsModal';
 import { OnboardingModal }from './components/OnboardingModal';
+import { SleepTrackerModal } from './components/SleepTrackerModal';
 import { IOSTabBar }      from './components/IOSTabBar';
 
 import { Task, Mission, Routine, ProductivityStats, UserSettings } from './types';
@@ -26,11 +27,12 @@ import { App as CapApp }   from '@capacitor/app';
 export type TabType = 'today' | 'flow' | 'missions' | 'assistant';
 
 /* Quick-add FAB menu overlay */
-function QuickAddMenu({ onClose, onTask, onMission, onRoutine }: {
+function QuickAddMenu({ onClose, onTask, onMission, onRoutine, onSleep }: {
   onClose: () => void;
   onTask: () => void;
   onMission: () => void;
   onRoutine: () => void;
+  onSleep: () => void;
 }) {
   return (
     <div
@@ -60,6 +62,7 @@ function QuickAddMenu({ onClose, onTask, onMission, onRoutine }: {
         onClick={(e) => e.stopPropagation()}
       >
         {[
+          { label: 'Log Sleep',   color: 'rgba(94,92,230,0.95)', emoji: '🌙', action: () => { onSleep(); onClose(); } },
           { label: 'New Routine', color: 'var(--ios-indigo)', emoji: '🌊', action: () => { onRoutine(); onClose(); } },
           { label: 'New Mission', color: 'var(--ios-purple)', emoji: '🎯', action: () => { onMission(); onClose(); } },
           { label: 'New Task',    color: 'var(--ios-blue)',   emoji: '✓', action: () => { onTask(); onClose(); } },
@@ -160,6 +163,7 @@ export default function App() {
   const [widgetsModal,  setWidgetsModal]  = useState(false);
   const [carryoverModal,setCarryoverModal]= useState(false);
   const [settingsModal, setSettingsModal] = useState(false);
+  const [sleepModal,    setSleepModal]    = useState(false);
   const [onboarding,    setOnboarding]    = useState(false);
   const [quickAdd,      setQuickAdd]      = useState(false);
 
@@ -172,6 +176,7 @@ export default function App() {
   const widgetsModalRef   = useRef(false);
   const carryoverModalRef = useRef(false);
   const settingsModalRef  = useRef(false);
+  const sleepModalRef     = useRef(false);
   const onboardingRef     = useRef(false);
   const tabRef            = useRef<TabType>('today');
 
@@ -183,6 +188,7 @@ export default function App() {
   useEffect(() => { widgetsModalRef.current = widgetsModal; }, [widgetsModal]);
   useEffect(() => { carryoverModalRef.current = carryoverModal; }, [carryoverModal]);
   useEffect(() => { settingsModalRef.current = settingsModal; }, [settingsModal]);
+  useEffect(() => { sleepModalRef.current = sleepModal; }, [sleepModal]);
   useEffect(() => { onboardingRef.current = onboarding; }, [onboarding]);
   useEffect(() => { tabRef.current = tab; }, [tab]);
 
@@ -190,7 +196,7 @@ export default function App() {
     StorageService.initStorage();
     const s = StorageService.getSettings();
     setSettings(s);
-    setTasks(TaskService.getTodayTasks());
+    setTasks(TaskService.getAll());
     setMissions(MissionService.getAll());
     setRoutines(RoutineService.getAllWithToday());
     setStats(ProgressService.calculateStats());
@@ -246,6 +252,7 @@ export default function App() {
         if (widgetsModalRef.current)   { setWidgetsModal(false); return; }
         if (carryoverModalRef.current) { setCarryoverModal(false); return; }
         if (settingsModalRef.current)  { setSettingsModal(false); return; }
+        if (sleepModalRef.current)     { setSleepModal(false); return; }
         if (onboardingRef.current)     { setOnboarding(false); return; }
 
         // Priority 3: Navigate back to Today page from secondary tabs
@@ -303,44 +310,59 @@ export default function App() {
     <div className="phone-shell">
 
       {/* Screen content with native slide-in motion */}
-      <div className="screen-scroll">
-        <div key={tab} className="page-slide-enter">
-          {tab === 'today' && (
-            <TodayView
-              tasks={tasks} stats={stats} missions={missions}
-              onRefresh={reload}
-              onOpenTaskModal={openTask}
-              onOpenCarryoverModal={() => setCarryoverModal(true)}
-              onOpenSettingsModal={() => setSettingsModal(true)}
-              onOpenReviewsModal={() => setReviewsModal(true)}
-              onOpenWidgetsModal={() => setWidgetsModal(true)}
-              onNavigateToTab={setTab}
-            />
-          )}
-          {tab === 'flow' && (
-            <FlowView
-              routines={routines}
-              tasks={tasks}
-              onRefresh={reload}
-              onOpenRoutineModal={openRoutine}
-              onOpenTaskModal={openTask}
-            />
-          )}
-          {tab === 'missions' && (
-            <MissionsView
-              missions={missions}
-              onRefresh={reload}
-              onOpenMissionModal={openMission}
-            />
-          )}
-          {tab === 'assistant' && (
-            <AssistantView
-              onRefreshData={reload}
-              onNavigateToTab={setTab}
-            />
-          )}
+      {tab !== 'assistant' ? (
+        <div className="screen-scroll">
+          <div key={tab} className="page-slide-enter">
+            {tab === 'today' && (
+              <TodayView
+                tasks={tasks} stats={stats} missions={missions}
+                onRefresh={reload}
+                onOpenTaskModal={openTask}
+                onOpenCarryoverModal={() => setCarryoverModal(true)}
+                onOpenSettingsModal={() => setSettingsModal(true)}
+                onOpenReviewsModal={() => setReviewsModal(true)}
+                onOpenWidgetsModal={() => setWidgetsModal(true)}
+                onOpenSleepModal={() => setSleepModal(true)}
+                onNavigateToTab={setTab}
+              />
+            )}
+            {tab === 'flow' && (
+              <FlowView
+                routines={routines}
+                tasks={tasks}
+                onRefresh={reload}
+                onOpenRoutineModal={openRoutine}
+                onOpenTaskModal={openTask}
+                onOpenSleepModal={() => setSleepModal(true)}
+              />
+            )}
+            {tab === 'missions' && (
+              <MissionsView
+                missions={missions}
+                onRefresh={reload}
+                onOpenMissionModal={openMission}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div
+          key="assistant"
+          className="page-slide-enter assistant-standalone"
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          <AssistantView
+            onRefreshData={reload}
+            onNavigateToTab={setTab}
+          />
+        </div>
+      )}
 
       {/* iOS Tab Bar */}
       <IOSTabBar
@@ -356,6 +378,7 @@ export default function App() {
           onTask={openTask}
           onMission={openMission}
           onRoutine={openRoutine}
+          onSleep={() => setSleepModal(true)}
         />
       )}
 
@@ -405,6 +428,13 @@ export default function App() {
           isOpen
           onClose={() => setSettingsModal(false)}
           onSettingsChanged={reload}
+        />
+      )}
+      {sleepModal && (
+        <SleepTrackerModal
+          isOpen
+          onClose={() => setSleepModal(false)}
+          onSaved={reload}
         />
       )}
       {onboarding && (

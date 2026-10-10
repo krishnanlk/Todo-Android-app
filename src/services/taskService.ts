@@ -5,6 +5,7 @@
 
 import { Task, TaskStatus, CompletionRecord } from '../types';
 import { StorageService, formatDateKey, getTodayKey } from './storageService';
+import { NotificationService } from './notificationService';
 
 export const TaskService = {
   getAll: (): Task[] => {
@@ -55,6 +56,7 @@ export const TaskService = {
 
     tasks.push(newTask);
     StorageService.saveTasks(tasks);
+    NotificationService.scheduleTaskReminder(newTask);
     return newTask;
   },
 
@@ -69,6 +71,7 @@ export const TaskService = {
     };
 
     StorageService.saveTasks(tasks);
+    NotificationService.scheduleTaskReminder(tasks[index]);
     return tasks[index];
   },
 
@@ -86,6 +89,12 @@ export const TaskService = {
 
     tasks[index] = task;
     StorageService.saveTasks(tasks);
+
+    if (isNowCompleted) {
+      NotificationService.cancelTaskReminder(id);
+    } else {
+      NotificationService.scheduleTaskReminder(task);
+    }
 
     // Record completion in history log
     const completions = StorageService.getCompletions();
@@ -117,6 +126,7 @@ export const TaskService = {
     const filtered = tasks.filter((t) => t.id !== id);
     if (filtered.length !== tasks.length) {
       StorageService.saveTasks(filtered);
+      NotificationService.cancelTaskReminder(id);
       return true;
     }
     return false;

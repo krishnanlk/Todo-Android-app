@@ -3,7 +3,7 @@
  * History, Voice Logs, and Settings with realistic demo data fallback.
  */
 
-import { Task, Mission, Routine, CompletionRecord, UserSettings, VoiceConversation } from '../types';
+import { Task, Mission, Routine, CompletionRecord, UserSettings, VoiceConversation, SleepLog } from '../types';
 import { APP_CONFIG } from '../config/appConfig';
 
 const STORAGE_KEYS = {
@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   COMPLETIONS: 'lineup_completions',
   SETTINGS: 'lineup_settings',
   VOICE_CONVERSATIONS: 'lineup_voice_conversations',
+  SLEEP_LOGS: 'lineup_sleep_logs',
   INITIALIZED: 'lineup_user_standalone_v2',
 };
 
@@ -31,6 +32,9 @@ export const defaultSettings: UserSettings = {
   defaultTaskDuration: 45,
   onboardingCompleted: false,
   userName: 'User',
+  targetSleepHours: 8.0,
+  sleepBedtime: '23:00',
+  sleepWakeTime: '07:00',
 };
 
 // Formats a date object to YYYY-MM-DD in local time
@@ -332,6 +336,7 @@ export const generateDemoData = () => {
     routines: demoRoutines,
     completions: demoCompletions,
     conversations: demoVoiceConversations,
+    sleepLogs: [],
   };
 };
 
@@ -486,6 +491,53 @@ export const StorageService = {
     }
   },
 
+  getSleepLogs: (): SleepLog[] => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SLEEP_LOGS);
+      if (!raw) return [];
+      const list: SleepLog[] = JSON.parse(raw);
+      // Strip any legacy demo preset mocks that were saved previously
+      const isPresetMock = (l: SleepLog) =>
+        (l.bedTime === '23:15' && l.wakeTime === '07:15' && l.durationMinutes === 480) ||
+        (l.bedTime === '23:30' && l.wakeTime === '07:00' && l.durationMinutes === 450) ||
+        (l.bedTime === '00:15' && l.wakeTime === '07:30' && l.durationMinutes === 435) ||
+        (l.bedTime === '22:45' && l.wakeTime === '06:45' && l.durationMinutes === 480) ||
+        (l.bedTime === '01:00' && l.wakeTime === '06:30' && l.durationMinutes === 330);
+      const cleaned = list.filter(l => !isPresetMock(l));
+      if (cleaned.length !== list.length) {
+        localStorage.setItem(STORAGE_KEYS.SLEEP_LOGS, JSON.stringify(cleaned));
+      }
+      return cleaned;
+    } catch {
+      return [];
+    }
+  },
+
+  saveSleepLogs: (logs: SleepLog[]) => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SLEEP_LOGS, JSON.stringify(logs));
+    } catch (e) {
+      console.error('Error saving sleep logs', e);
+    }
+  },
+
+  saveSleepLog: (log: SleepLog) => {
+    try {
+      const logs = StorageService.getSleepLogs();
+      const existingIdx = logs.findIndex(l => l.date === log.date);
+      let updated: SleepLog[];
+      if (existingIdx >= 0) {
+        updated = [...logs];
+        updated[existingIdx] = log;
+      } else {
+        updated = [log, ...logs];
+      }
+      StorageService.saveSleepLogs(updated);
+    } catch (e) {
+      console.error('Error saving sleep log', e);
+    }
+  },
+
   resetToDemo: () => {
     const demo = generateDemoData();
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(demo.tasks));
@@ -493,6 +545,7 @@ export const StorageService = {
     localStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(demo.routines));
     localStorage.setItem(STORAGE_KEYS.COMPLETIONS, JSON.stringify(demo.completions));
     localStorage.setItem(STORAGE_KEYS.VOICE_CONVERSATIONS, JSON.stringify(demo.conversations));
+    localStorage.setItem(STORAGE_KEYS.SLEEP_LOGS, JSON.stringify(demo.sleepLogs));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ ...defaultSettings, onboardingCompleted: true }));
   },
 
@@ -502,6 +555,7 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.ROUTINES);
     localStorage.removeItem(STORAGE_KEYS.COMPLETIONS);
     localStorage.removeItem(STORAGE_KEYS.VOICE_CONVERSATIONS);
+    localStorage.removeItem(STORAGE_KEYS.SLEEP_LOGS);
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
     localStorage.removeItem(STORAGE_KEYS.INITIALIZED);
   },
@@ -514,6 +568,7 @@ export const StorageService = {
       missions: StorageService.getMissions(),
       routines: StorageService.getRoutines(),
       completions: StorageService.getCompletions(),
+      sleepLogs: StorageService.getSleepLogs(),
       settings: StorageService.getSettings(),
     }, null, 2);
   },
@@ -525,6 +580,7 @@ export const StorageService = {
       if (Array.isArray(data.missions)) StorageService.saveMissions(data.missions);
       if (Array.isArray(data.routines)) StorageService.saveRoutines(data.routines);
       if (Array.isArray(data.completions)) StorageService.saveCompletions(data.completions);
+      if (Array.isArray(data.sleepLogs)) StorageService.saveSleepLogs(data.sleepLogs);
       if (data.settings) StorageService.saveSettings(data.settings);
       return true;
     } catch (e) {

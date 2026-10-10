@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { Routine, Task, FlowEvent } from '../types';
 import { FlowService } from '../services/flowService';
 import { WidgetService } from '../services/widgetService';
+import { SleepService, QUALITY_META } from '../services/sleepService';
 
 interface FlowViewProps {
   routines: Routine[];
@@ -10,6 +11,7 @@ interface FlowViewProps {
   onRefresh: () => void;
   onOpenRoutineModal: (r?: Routine) => void;
   onOpenTaskModal?: (t?: Task) => void;
+  onOpenSleepModal?: () => void;
 }
 
 type Segment = 'timeline' | 'habits';
@@ -53,9 +55,11 @@ export const FlowView: React.FC<FlowViewProps> = ({
   onRefresh,
   onOpenRoutineModal,
   onOpenTaskModal,
+  onOpenSleepModal,
 }) => {
   const [segment, setSegment] = useState<Segment>('timeline');
   const liveRef = useRef<HTMLDivElement | null>(null);
+  const todaySleep = SleepService.getTodayLog();
 
   // FlowService retains all items (routines + scheduled tasks) into a chronological flow
   const allFlowItems = useMemo(() => {
@@ -208,6 +212,54 @@ export const FlowView: React.FC<FlowViewProps> = ({
 
       {segment === 'timeline' ? (
         <>
+          {/* Sleep & Wake Cycle Anchor */}
+          <div style={{padding:'0 16px', marginBottom:12}}>
+            <div
+              onClick={onOpenSleepModal}
+              style={{
+                background: 'linear-gradient(135deg, rgba(94,92,230,0.12), rgba(10,132,255,0.06))',
+                border: '1px solid rgba(94,92,230,0.22)',
+                borderRadius: 16,
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <span style={{fontSize:20}}>🌙</span>
+                <div>
+                  <div style={{fontSize:11,fontWeight:600,color:'var(--ios-label2)',textTransform:'uppercase',letterSpacing:0.5}}>
+                    Sleep & Wake Cycle
+                  </div>
+                  {todaySleep ? (
+                    <div style={{fontSize:14,fontWeight:700,color:'var(--ios-label)',marginTop:1}}>
+                      {todaySleep.bedTime} → {todaySleep.wakeTime} ({SleepService.formatDuration(todaySleep.durationMinutes)})
+                    </div>
+                  ) : (
+                    <div style={{fontSize:13,fontWeight:600,color:'var(--ios-indigo)',marginTop:1}}>
+                      Tap to log last night's sleep & wake up time
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                {todaySleep && (
+                  <span style={{
+                    fontSize:11,fontWeight:700,
+                    padding:'3px 8px',borderRadius:10,
+                    background:`${QUALITY_META[todaySleep.quality].color}22`,
+                    color:QUALITY_META[todaySleep.quality].color,
+                  }}>
+                    {QUALITY_META[todaySleep.quality].emoji} {QUALITY_META[todaySleep.quality].label}
+                  </span>
+                )}
+                <span style={{fontSize:15,color:'var(--ios-label3)'}}>›</span>
+              </div>
+            </div>
+          </div>
+
           {/* Timeline view retaining all events */}
           <div className="flow-timeline">
             {Object.entries(groups).map(([block, items]) => (

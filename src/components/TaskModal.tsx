@@ -181,7 +181,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, task, missions, on
 
 
           {/* Recurrence */}
-          <div className="ios-input-group">
+          <div className="ios-input-group" style={{marginBottom:10}}>
             <div className="ios-input-label">Repeat</div>
             <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
               {RECURRENCES.map(r => (
@@ -201,6 +201,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, task, missions, on
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Dynamic Reminder Alert Badge */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7,
+            padding: '8px 12px', borderRadius: 12,
+            background: 'rgba(10, 132, 255, 0.1)',
+            border: '1px solid rgba(10, 132, 255, 0.22)',
+            fontSize: 12, fontWeight: 500, color: 'var(--ios-blue)',
+            marginBottom: 16,
+          }}>
+            <span style={{fontSize: 14}}>🔔</span>
+            <span>
+              Reminder will ring at <b>{dueTime || '09:00 AM'}</b>
+              {recurrence !== 'none' ? ` (Repeats ${recurrence})` : ' (One-time)'}
+            </span>
           </div>
 
           {/* Mission link */}

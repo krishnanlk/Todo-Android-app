@@ -287,4 +287,95 @@ export const NotificationService = {
       body: 'Your next life flow block has begun. Stay in the zone! ⚡',
     });
   },
+
+  /**
+   * Schedule automated task reminder based on dueDate, dueTime, and recurrence pattern.
+   */
+  scheduleTaskReminder: async (task: Task) => {
+    if (!task.dueDate) return;
+
+    // Stable positive 32-bit integer notification ID
+    const notifId = Math.abs(
+      task.id.split('').reduce((acc, c) => ((acc << 5) - acc + c.charCodeAt(0)) | 0, 0)
+    ) % 10000000;
+
+    // Cancel existing scheduled notification for this task first
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    } catch {
+      // ignore
+    }
+
+    if (task.status === 'completed' || task.status === 'archived') {
+      return;
+    }
+
+    const timeStr = task.dueTime || '09:00';
+    const [h, m] = timeStr.split(':').map(Number);
+    const scheduledDate = new Date(`${task.dueDate}T${String(h || 9).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`);
+
+    const now = new Date();
+    let targetAt = scheduledDate;
+
+    // Determine repeating schedule
+    let every: 'day' | 'week' | 'month' | undefined = undefined;
+    let repeats = false;
+
+    if (task.recurrence === 'daily' || task.recurrence === 'weekdays' || task.recurrence === 'weekends') {
+      every = 'day';
+      repeats = true;
+    } else if (task.recurrence === 'weekly') {
+      every = 'week';
+      repeats = true;
+    } else if (task.recurrence === 'monthly') {
+      every = 'month';
+      repeats = true;
+    }
+
+    if (targetAt.getTime() <= now.getTime()) {
+      if (repeats && every === 'day') {
+        targetAt = new Date(targetAt.getTime() + 24 * 60 * 60 * 1000);
+      } else if (repeats && every === 'week') {
+        targetAt = new Date(targetAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+      } else if (repeats && every === 'month') {
+        targetAt = new Date(targetAt);
+        targetAt.setMonth(targetAt.getMonth() + 1);
+      } else {
+        // One-time task scheduled in past or today past time - skip scheduling future notification
+        return;
+      }
+    }
+
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: notifId,
+            title: `⏰ Task: ${task.title}`,
+            body: task.notes
+              ? `${task.notes} · Due ${timeStr}${task.recurrence ? ` (${task.recurrence})` : ''}`
+              : `Scheduled for ${timeStr}${task.recurrence ? ` · Repeats ${task.recurrence}` : ''}`,
+            schedule: repeats && every ? { at: targetAt, every, repeats: true } : { at: targetAt },
+            extra: { taskId: task.id },
+          },
+        ],
+      });
+    } catch (e) {
+      console.warn('Native LocalNotifications schedule error:', e);
+    }
+  },
+
+  /**
+   * Cancel task reminder notification
+   */
+  cancelTaskReminder: async (taskId: string) => {
+    const notifId = Math.abs(
+      taskId.split('').reduce((acc, c) => ((acc << 5) - acc + c.charCodeAt(0)) | 0, 0)
+    ) % 10000000;
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    } catch {
+      // ignore
+    }
+  },
 };

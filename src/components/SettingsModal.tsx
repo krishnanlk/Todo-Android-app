@@ -229,6 +229,73 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
 
+          {/* Sleep & Recovery */}
+          <div style={{marginBottom:24}}>
+            <div className="ios-section-header" style={{padding:'0 4px',marginBottom:8}}>
+              Sleep & Recovery Goal
+            </div>
+            <div className="ios-grouped-card">
+              <SettingRow
+                label="Target Sleep Duration"
+                subtitle="Ideal sleep goal per night"
+                right={
+                  <div style={{display:'flex',gap:6}}>
+                    {[7.0, 7.5, 8.0, 8.5].map(hrs => (
+                      <button
+                        key={hrs}
+                        type="button"
+                        onClick={() => save('targetSleepHours', hrs)}
+                        style={{
+                          padding:'4px 8px', borderRadius:8,
+                          fontSize:12, fontWeight:600,
+                          background: (settings.targetSleepHours || 8.0) === hrs ? 'var(--ios-indigo)' : 'var(--ios-fill3)',
+                          color: (settings.targetSleepHours || 8.0) === hrs ? '#FFF' : 'var(--ios-label)',
+                          border:'none', cursor:'pointer',
+                        }}
+                      >
+                        {hrs}h
+                      </button>
+                    ))}
+                  </div>
+                }
+              />
+              <SettingRow
+                label="Default Bedtime"
+                subtitle="Target hour to sleep"
+                right={
+                  <input
+                    type="time"
+                    value={settings.sleepBedtime || '23:00'}
+                    onChange={e => save('sleepBedtime', e.target.value)}
+                    style={{
+                      background:'var(--ios-fill3)', border:'none',
+                      borderRadius:8, padding:'4px 8px',
+                      color:'var(--ios-label)', fontSize:14, fontWeight:600,
+                      fontFamily:'var(--font)',
+                    }}
+                  />
+                }
+              />
+              <SettingRow
+                label="Default Wake Up"
+                subtitle="Target morning alarm"
+                right={
+                  <input
+                    type="time"
+                    value={settings.sleepWakeTime || '07:00'}
+                    onChange={e => save('sleepWakeTime', e.target.value)}
+                    style={{
+                      background:'var(--ios-fill3)', border:'none',
+                      borderRadius:8, padding:'4px 8px',
+                      color:'var(--ios-label)', fontSize:14, fontWeight:600,
+                      fontFamily:'var(--font)',
+                    }}
+                  />
+                }
+              />
+            </div>
+          </div>
+
           {/* Notifications */}
           <div style={{marginBottom:24}}>
             <div className="ios-section-header" style={{padding:'0 4px',marginBottom:8}}>

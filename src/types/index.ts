@@ -178,6 +178,23 @@ export interface UserSettings {
   onboardingCompleted: boolean;
   userName: string;
   apiKey?: string;
+  targetSleepHours?: number; // default 8.0
+  sleepBedtime?: string; // default "23:00"
+  sleepWakeTime?: string; // default "07:00"
+}
+
+export type SleepQuality = 'exhausted' | 'fair' | 'good' | 'energized';
+
+export interface SleepLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  bedTime: string; // HH:MM
+  wakeTime: string; // HH:MM
+  durationMinutes: number; // e.g. 480
+  quality: SleepQuality;
+  targetHours: number; // e.g. 8.0
+  notes?: string;
+  createdAt: string;
 }
 
 export interface WidgetPayload {

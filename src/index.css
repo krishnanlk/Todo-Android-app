@@ -134,10 +134,12 @@ body {
    ============================ */
 .phone-shell {
   width: 393px;
-  height: 852px;
+  height: min(852px, 100vh);
+  max-height: 100vh;
   background: var(--ios-bg);
   position: relative;
   overflow: hidden;
+  overflow-y: hidden !important;
   display: flex;
   flex-direction: column;
   padding-top: max(env(safe-area-inset-top), 8px);
@@ -238,6 +240,34 @@ body {
   scrollbar-width: none;
 }
 
+.screen-scroll.assistant-screen {
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+body.keyboard-open .screen-scroll.assistant-screen {
+  padding-bottom: 0 !important;
+}
+
+body.keyboard-open .ios-tab-bar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(100px) !important;
+}
+
+.page-slide-enter.assistant-page {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
 .screen-scroll::-webkit-scrollbar {
   display: none;
 }
@@ -246,7 +276,7 @@ body {
    iOS TAB BAR
    ============================ */
 .ios-tab-bar {
-  position: fixed;
+  position: absolute;
   bottom: 18px;
   left: 14px;
   right: 14px;

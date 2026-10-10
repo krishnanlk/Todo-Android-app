@@ -47,13 +47,17 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom of chat
+  // Auto-scroll to bottom of chat when new messages or speech activity occurs
   useEffect(() => {
-    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
+    if (chatMessages.length > 1 || voiceTranscript || isVoiceMode || voiceState === 'processing') {
+      chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
+    }
   }, [chatMessages, voiceState, isVoiceMode, voiceTranscript]);
 
-  // Clean up keyboard class on unmount
+  // Clean up keyboard class on unmount & keep phone-shell un-scrolled
   useEffect(() => {
+    const shell = document.querySelector('.phone-shell');
+    if (shell) shell.scrollTop = 0;
     return () => {
       document.body.classList.remove('keyboard-open');
     };
@@ -188,9 +192,13 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
       style={{
         display: 'flex',
         flexDirection: 'column',
+        flex: 1,
         height: '100%',
+        width: '100%',
         position: 'relative',
         background: 'var(--ios-bg)',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       {/* Header bar */}
@@ -199,12 +207,13 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '8px 20px 8px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          background: 'rgba(20, 20, 22, 0.85)',
+          padding: '10px 20px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(20, 20, 22, 0.95)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           zIndex: 10,
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -277,6 +286,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
           flexDirection: 'column',
           gap: 14,
           scrollbarWidth: 'none',
+          minHeight: 0,
         }}
       >
         {chatMessages.map((msg) => (
@@ -407,8 +417,11 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
           backdropFilter: 'blur(25px)',
           WebkitBackdropFilter: 'blur(25px)',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: isInputFocused ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
           flexShrink: 0,
           zIndex: 20,
+          marginBottom: isInputFocused ? 6 : 96,
+          transition: 'margin-bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         {isVoiceMode ? (
@@ -728,15 +741,6 @@ export const AssistantView: React.FC<AssistantViewProps> = ({ onRefreshData, onN
           </div>
         )}
       </div>
-
-      {/* Dynamic bottom spacer: hides when typing/keyboard open so input docks cleanly, gives space for tab bar otherwise */}
-      <div
-        style={{
-          height: isInputFocused ? 4 : 'calc(var(--tab-bar-height) + 12px)',
-          flexShrink: 0,
-          transition: 'height 0.2s ease',
-        }}
-      />
     </div>
   );
 };

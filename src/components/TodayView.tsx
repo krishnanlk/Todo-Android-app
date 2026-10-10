@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import confetti from 'canvas-confetti';
+import { Moon } from 'lucide-react';
 import { Task, ProductivityStats, Mission } from '../types';
 import { TaskService }  from '../services/taskService';
 import { WidgetService } from '../services/widgetService';
-import { getTodayKey }   from '../services/storageService';
+import { SleepService, QUALITY_META } from '../services/sleepService';
+import { getTodayKey, formatDateKey }   from '../services/storageService';
 import { StreakGraph }   from './StreakGraph';
 import type { TabType } from '../App';
 
@@ -17,6 +19,7 @@ interface TodayViewProps {
   onOpenSettingsModal: () => void;
   onOpenReviewsModal: () => void;
   onOpenWidgetsModal?: () => void;
+  onOpenSleepModal?: () => void;
   onNavigateToTab: (tab: TabType) => void;
 }
 
@@ -29,9 +32,11 @@ const priorityBadge = (p: string) => {
 export const TodayView: React.FC<TodayViewProps> = ({
   tasks, stats, missions, onRefresh, onOpenTaskModal,
   onOpenCarryoverModal, onOpenSettingsModal, onOpenReviewsModal,
-  onOpenWidgetsModal: _onOpenWidgetsModal, onNavigateToTab,
+  onOpenWidgetsModal: _onOpenWidgetsModal, onOpenSleepModal, onNavigateToTab,
 }) => {
+  const [taskFilter, setTaskFilter] = useState<'all' | 'today' | 'upcoming'>('all');
   const missionMap = new Map(missions.map(m => [m.id, m]));
+  const todaySleep = SleepService.getTodayLog();
 
   const now = new Date();
   const hours = now.getHours();
@@ -51,28 +56,53 @@ export const TodayView: React.FC<TodayViewProps> = ({
   };
 
   const todayKey = getTodayKey();
+  const tomorrowKey = useMemo(() => {
+    const tm = new Date();
+    tm.setDate(tm.getDate() + 1);
+    return formatDateKey(tm);
+  }, []);
 
-  // Line up tasks: unfinished first (overdue on top, priority, time), completed at the bottom
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aDone = a.status === 'completed';
-    const bDone = b.status === 'completed';
-    if (aDone !== bDone) return aDone ? 1 : -1;
+  const todayTasks = useMemo(() => {
+    return tasks.filter(t => !t.dueDate || t.dueDate === todayKey || (t.dueDate < todayKey && t.status !== 'completed'));
+  }, [tasks, todayKey]);
 
-    // Overdue tasks that are unfinished get prominent top position
-    const aOverdue = a.dueDate && a.dueDate < todayKey && !aDone;
-    const bOverdue = b.dueDate && b.dueDate < todayKey && !bDone;
-    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+  const upcomingTasks = useMemo(() => {
+    return tasks.filter(t => t.dueDate && t.dueDate > todayKey);
+  }, [tasks, todayKey]);
 
-    const pWeight = { high: 3, medium: 2, low: 1 };
-    const pDiff = (pWeight[b.priority] || 2) - (pWeight[a.priority] || 2);
-    if (pDiff !== 0) return pDiff;
+  const filteredTasks = useMemo(() => {
+    if (taskFilter === 'today') return todayTasks;
+    if (taskFilter === 'upcoming') return upcomingTasks;
+    return tasks; // default 'all'
+  }, [tasks, taskFilter, todayTasks, upcomingTasks]);
 
-    return (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99');
-  });
+  // Line up tasks: unfinished first (overdue on top, chronological by date, priority, time), completed at the bottom
+  const sortedTasks = useMemo(() => {
+    return [...filteredTasks].sort((a, b) => {
+      const aDone = a.status === 'completed';
+      const bDone = b.status === 'completed';
+      if (aDone !== bDone) return aDone ? 1 : -1;
 
-  const completed  = tasks.filter(t => t.status === 'completed').length;
-  const total      = tasks.length;
-  const pct        = total > 0 ? Math.round((completed / total) * 100) : 0;
+      // Overdue tasks that are unfinished get prominent top position
+      const aOverdue = a.dueDate && a.dueDate < todayKey && !aDone;
+      const bOverdue = b.dueDate && b.dueDate < todayKey && !bDone;
+      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+
+      // Chronological order by due date when viewing all / upcoming
+      const dDiff = (a.dueDate || '9999').localeCompare(b.dueDate || '9999');
+      if (dDiff !== 0) return dDiff;
+
+      const pWeight = { high: 3, medium: 2, low: 1 };
+      const pDiff = (pWeight[b.priority] || 2) - (pWeight[a.priority] || 2);
+      if (pDiff !== 0) return pDiff;
+
+      return (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99');
+    });
+  }, [filteredTasks, todayKey]);
+
+  const completedToday = todayTasks.filter(t => t.status === 'completed').length;
+  const totalToday     = todayTasks.length;
+  const pct            = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
 
   return (
     <div className="animate-fade-in">
@@ -86,6 +116,23 @@ export const TodayView: React.FC<TodayViewProps> = ({
           {dateStr}
         </span>
         <div style={{display:'flex',alignItems:'center',gap:6}}>
+          {/* Sleep Tracker shortcut */}
+          <button
+            onClick={onOpenSleepModal}
+            title="Sleep & Recovery"
+            style={{
+              padding:'6px 10px', borderRadius:12,
+              background:'linear-gradient(135deg, rgba(94,92,230,0.2) 0%, rgba(10,132,255,0.15) 100%)',
+              border:'1px solid rgba(94,92,230,0.35)',
+              display:'flex', alignItems:'center', gap:5,
+              fontSize:12, fontWeight:700, color:'#5E5CE6', cursor:'pointer',
+              boxShadow:'0 2px 8px rgba(94,92,230,0.15)',
+            }}
+          >
+            <Moon size={14} />
+            <span>Sleep</span>
+          </button>
+
           {/* Working Productivity Analysis shortcut */}
           <button
             onClick={onOpenReviewsModal}
@@ -145,7 +192,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 Today's Progress
               </div>
               <div style={{fontSize:30,fontWeight:700,letterSpacing:'-0.5px',color:'var(--ios-label)'}}>
-                {completed} <span style={{fontSize:20,fontWeight:400,color:'var(--ios-label2)'}}>/ {total}</span>
+                {completedToday} <span style={{fontSize:20,fontWeight:400,color:'var(--ios-label2)'}}>/ {totalToday}</span>
               </div>
             </div>
             {/* Ring */}
@@ -187,6 +234,94 @@ export const TodayView: React.FC<TodayViewProps> = ({
         </div>
       </div>
 
+      {/* ── Sleep & Recovery Card (Compact Fit) ── */}
+      <div style={{padding:'0 16px', marginBottom:10}}>
+        <div
+          onClick={onOpenSleepModal}
+          className="ios-card"
+          style={{
+            background: 'linear-gradient(135deg, rgba(94,92,230,0.12) 0%, rgba(10,132,255,0.06) 100%)',
+            border: '1px solid rgba(94,92,230,0.22)',
+            cursor: 'pointer',
+            padding: '8px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: 16,
+            transition: 'transform 0.15s ease',
+          }}
+        >
+          <div style={{display:'flex', alignItems:'center', gap:10, minWidth:0, flex:1}}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 9,
+              background: 'rgba(94,92,230,0.18)',
+              border: '1px solid rgba(94,92,230,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 15, flexShrink: 0,
+            }}>
+              🌙
+            </div>
+            <div style={{minWidth:0, overflow:'hidden'}}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: 'var(--ios-label2)',
+                textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.1,
+              }}>
+                Sleep & Recovery
+              </div>
+              {todaySleep ? (
+                <div style={{
+                  fontSize: 13, fontWeight: 700, color: 'var(--ios-label)',
+                  marginTop: 2, display: 'flex', alignItems: 'center', gap: 5,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  <span>{todaySleep.bedTime} → {todaySleep.wakeTime}</span>
+                  <span style={{fontSize: 12, fontWeight: 600, color: 'var(--ios-indigo)'}}>
+                    · {SleepService.formatDuration(todaySleep.durationMinutes)}
+                  </span>
+                </div>
+              ) : (
+                <div style={{
+                  fontSize: 13, fontWeight: 600, color: 'var(--ios-label)',
+                  marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  Log last night's sleep
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{display:'flex', alignItems:'center', gap:6, flexShrink:0, marginLeft:8}}>
+            {todaySleep ? (
+              <span
+                style={{
+                  padding: '3px 8px', borderRadius: 10,
+                  background: `${QUALITY_META[todaySleep.quality].color}22`,
+                  color: QUALITY_META[todaySleep.quality].color,
+                  fontSize: 11, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  border: `1px solid ${QUALITY_META[todaySleep.quality].color}33`,
+                }}
+              >
+                <span>{QUALITY_META[todaySleep.quality].emoji}</span>
+                <span>{QUALITY_META[todaySleep.quality].label}</span>
+              </span>
+            ) : (
+              <span
+                style={{
+                  padding: '4px 10px', borderRadius: 10,
+                  background: 'var(--ios-indigo)',
+                  color: '#FFF', fontSize: 11, fontWeight: 700,
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                }}
+              >
+                <span>+</span> Log
+              </span>
+            )}
+            <span style={{fontSize:14, color:'var(--ios-label3)', opacity:0.6}}>›</span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Carryover banner ── */}
       {stats.carryOverCount > 0 && (
         <div style={{padding:'0 16px', marginBottom:10}}>
@@ -215,7 +350,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
 
 
       {/* ── Section header ── */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'4px 20px 10px'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'4px 20px 8px'}}>
         <span style={{fontSize:22,fontWeight:700,letterSpacing:'-0.3px',color:'var(--ios-label)'}}>
           Tasks
         </span>
@@ -229,16 +364,48 @@ export const TodayView: React.FC<TodayViewProps> = ({
         </button>
       </div>
 
+      {/* ── Task Filter Pills (Default: All) ── */}
+      <div style={{display:'flex', gap:6, padding:'0 16px 12px', overflowX:'auto'}}>
+        {[
+          { key: 'all', label: `All (${tasks.length})` },
+          { key: 'today', label: `Today (${todayTasks.length})` },
+          { key: 'upcoming', label: `Upcoming (${upcomingTasks.length})` },
+        ].map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setTaskFilter(f.key as any)}
+            style={{
+              padding: '5px 12px',
+              borderRadius: 14,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: taskFilter === f.key ? '1px solid rgba(10, 132, 255, 0.4)' : '1px solid transparent',
+              background: taskFilter === f.key ? 'var(--ios-blue)' : 'var(--ios-fill3)',
+              color: taskFilter === f.key ? '#FFF' : 'var(--ios-label2)',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {/* ── Task list (iOS grouped style) ── */}
       <div style={{padding:'0 16px', marginBottom:8}}>
         {sortedTasks.length === 0 ? (
-          <div className="ios-card" style={{textAlign:'center',padding:'32px 20px'}}>
-            <div style={{fontSize:40,marginBottom:8}}>✨</div>
+          <div className="ios-card" style={{textAlign:'center',padding:'30px 20px'}}>
+            <div style={{fontSize:38,marginBottom:8}}>✨</div>
             <div style={{fontSize:17,fontWeight:600,color:'var(--ios-label)',marginBottom:4}}>
-              All clear!
+              {taskFilter === 'today' ? 'All clear!' : taskFilter === 'upcoming' ? 'No upcoming tasks' : 'No tasks yet'}
             </div>
-            <div style={{fontSize:14,color:'var(--ios-label2)'}}>
-              No tasks for today.
+            <div style={{fontSize:13,color:'var(--ios-label2)'}}>
+              {taskFilter === 'today'
+                ? 'No tasks for today. Switch to All to see other scheduled tasks.'
+                : taskFilter === 'upcoming'
+                ? 'No upcoming tasks scheduled.'
+                : 'Tap below to add your first task.'}
             </div>
             <button
               onClick={() => onOpenTaskModal()}
@@ -250,7 +417,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
           </div>
         ) : (
           <div className="ios-grouped-card">
-            {sortedTasks.map((task, i) => {
+            {sortedTasks.map((task) => {
               const done     = task.status === 'completed';
               const mission  = task.missionId ? missionMap.get(task.missionId) : undefined;
 
@@ -285,8 +452,26 @@ export const TodayView: React.FC<TodayViewProps> = ({
                         {task.title}
                       </span>
                       {priorityBadge(task.priority)}
+
+                      {/* Due Date Indicator Badge */}
                       {task.dueDate && task.dueDate < todayKey && !done && (
-                        <span className="ios-pill ios-pill-red" style={{fontSize:11}}>Overdue</span>
+                        <span className="ios-pill ios-pill-red" style={{fontSize:11}}>⚠️ Overdue</span>
+                      )}
+                      {task.dueDate === todayKey && (
+                        <span className="ios-pill ios-pill-blue" style={{fontSize:11}}>Today</span>
+                      )}
+                      {task.dueDate === tomorrowKey && (
+                        <span className="ios-pill ios-pill-purple" style={{fontSize:11}}>Tomorrow</span>
+                      )}
+                      {task.dueDate && task.dueDate > tomorrowKey && (
+                        <span className="ios-pill" style={{
+                          fontSize:11,
+                          background:'rgba(255,255,255,0.08)',
+                          color:'var(--ios-label2)',
+                          border:'1px solid rgba(255,255,255,0.08)'
+                        }}>
+                          📅 {new Date(task.dueDate + 'T00:00:00').toLocaleDateString(undefined, { month:'short', day:'numeric' })}
+                        </span>
                       )}
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
@@ -304,8 +489,8 @@ export const TodayView: React.FC<TodayViewProps> = ({
                         </span>
                       )}
                       {task.recurrence && (
-                        <span style={{fontSize:12,color:'var(--ios-indigo)'}}>
-                          ↺ {task.recurrence}
+                        <span style={{fontSize:12,color:'var(--ios-indigo)',fontWeight:500}}>
+                          🔁 {task.recurrence}
                         </span>
                       )}
                     </div>

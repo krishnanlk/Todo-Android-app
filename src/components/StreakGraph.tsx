@@ -178,14 +178,14 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
   const dayLabels = ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'];
 
   return (
-    <div style={{ padding: '0 16px', marginBottom: 16 }}>
+    <div style={{ padding: '0 16px', marginBottom: 14 }}>
       <div
         className="ios-card"
         style={{
           background: 'linear-gradient(145deg, rgba(28, 28, 30, 0.98) 0%, rgba(18, 18, 20, 0.99) 100%)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: 22,
-          padding: '16px 16px',
+          borderRadius: 18,
+          padding: '12px 14px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
         }}
       >
@@ -195,15 +195,15 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 12,
+            marginBottom: 10,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
+                width: 28,
+                height: 28,
+                borderRadius: 8,
                 background: 'rgba(255, 159, 10, 0.18)',
                 display: 'flex',
                 alignItems: 'center',
@@ -211,39 +211,34 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
                 color: 'var(--ios-orange)',
               }}
             >
-              <Flame size={20} />
+              <Flame size={16} />
             </div>
-            <div>
-              <div
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'var(--ios-label)',
+                letterSpacing: '-0.2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              Streak
+              <span
                 style={{
-                  fontSize: 15,
+                  fontSize: 9,
                   fontWeight: 700,
-                  color: 'var(--ios-label)',
-                  letterSpacing: '-0.2px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
+                  padding: '2px 6px',
+                  borderRadius: 5,
+                  background: activeStreakDays > 0 ? 'rgba(57, 211, 83, 0.16)' : 'rgba(10, 132, 255, 0.16)',
+                  color: activeStreakDays > 0 ? '#39D353' : 'var(--ios-blue)',
+                  border: activeStreakDays > 0 ? '1px solid rgba(57, 211, 83, 0.3)' : '1px solid rgba(10, 132, 255, 0.3)',
+                  letterSpacing: '0.4px',
                 }}
               >
-                Streak Maintenance
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '2px 7px',
-                    borderRadius: 6,
-                    background: activeStreakDays > 0 ? 'rgba(57, 211, 83, 0.16)' : 'rgba(10, 132, 255, 0.16)',
-                    color: activeStreakDays > 0 ? '#39D353' : 'var(--ios-blue)',
-                    border: activeStreakDays > 0 ? '1px solid rgba(57, 211, 83, 0.3)' : '1px solid rgba(10, 132, 255, 0.3)',
-                    letterSpacing: '0.4px',
-                  }}
-                >
-                  {activeStreakDays > 0 ? 'ACTIVE' : 'START TODAY'}
-                </span>
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 2 }}>
-                Real device activity & consistency
-              </div>
+                {activeStreakDays > 0 ? 'ACTIVE' : 'READY'}
+              </span>
             </div>
           </div>
 
@@ -251,21 +246,19 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
-              background: 'linear-gradient(135deg, rgba(255, 159, 10, 0.24) 0%, rgba(255, 69, 58, 0.20) 100%)',
-              border: '1px solid rgba(255, 159, 10, 0.38)',
-              padding: '6px 11px',
-              borderRadius: 14,
-              boxShadow: '0 2px 8px rgba(255, 159, 10, 0.15)',
+              gap: 4,
+              background: 'linear-gradient(135deg, rgba(255, 159, 10, 0.22) 0%, rgba(255, 69, 58, 0.18) 100%)',
+              border: '1px solid rgba(255, 159, 10, 0.35)',
+              padding: '4px 9px',
+              borderRadius: 10,
             }}
           >
-            <span style={{ fontSize: 13 }}>🔥</span>
+            <span style={{ fontSize: 12 }}>🔥</span>
             <span
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--ios-orange)',
-                letterSpacing: '-0.2px',
               }}
             >
               {activeStreakDays}d
@@ -273,24 +266,24 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
           </div>
         </div>
 
-        {/* Individual Split Navigation: Overview vs Heatmap */}
+        {/* Minimal Split Navigation: Overview vs Heatmap */}
         <div
           style={{
             display: 'flex',
-            background: 'rgba(118, 118, 128, 0.2)',
-            borderRadius: 10,
-            padding: 3,
-            marginBottom: 12,
+            background: 'rgba(118, 118, 128, 0.18)',
+            borderRadius: 8,
+            padding: 2,
+            marginBottom: 10,
           }}
         >
           <button
             onClick={() => setActiveTab('overview')}
             style={{
               flex: 1,
-              padding: '6px 10px',
-              fontSize: 12,
+              padding: '5px 8px',
+              fontSize: 11,
               fontWeight: 600,
-              borderRadius: 8,
+              borderRadius: 6,
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
@@ -298,16 +291,16 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
               color: activeTab === 'overview' ? '#FFF' : 'var(--ios-label2)',
             }}
           >
-            Streak Overview
+            Overview
           </button>
           <button
             onClick={() => setActiveTab('heatmap')}
             style={{
               flex: 1,
-              padding: '6px 10px',
-              fontSize: 12,
+              padding: '5px 8px',
+              fontSize: 11,
               fontWeight: 600,
-              borderRadius: 8,
+              borderRadius: 6,
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
@@ -315,64 +308,58 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
               color: activeTab === 'heatmap' ? '#FFF' : 'var(--ios-label2)',
             }}
           >
-            Activity Heatmap
+            Heatmap
           </button>
         </div>
 
-        {/* TAB 1: Mobile-Fit 2x2 Streak Cards & Milestone Split */}
+        {/* TAB 1: Minimal Compact 2x2 Streak Cards */}
         {activeTab === 'overview' && (
           <div>
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 8,
-                marginBottom: 10,
+                gap: 6,
+                marginBottom: 8,
               }}
             >
               {/* Card 1: Current Streak */}
               <div
                 style={{
                   background: 'rgba(255, 159, 10, 0.1)',
-                  border: '1px solid rgba(255, 159, 10, 0.25)',
-                  borderRadius: 14,
-                  padding: '12px',
+                  border: '1px solid rgba(255, 159, 10, 0.22)',
+                  borderRadius: 11,
+                  padding: '8px 10px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-orange)', textTransform: 'uppercase' }}>
-                    Current Streak
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ios-orange)', textTransform: 'uppercase' }}>
+                    Current
                   </span>
-                  <Flame size={14} color="var(--ios-orange)" />
+                  <Flame size={12} color="var(--ios-orange)" />
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#FFF', marginTop: 4 }}>
-                  {activeStreakDays} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ios-label2)' }}>days</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 2 }}>
-                  Daily goal reached
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#FFF', marginTop: 2 }}>
+                  {activeStreakDays} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--ios-label2)' }}>days</span>
                 </div>
               </div>
 
-              {/* Card 2: Best Streak */}
+              {/* Card 2: Record Streak */}
               <div
                 style={{
                   background: 'rgba(57, 211, 83, 0.1)',
-                  border: '1px solid rgba(57, 211, 83, 0.25)',
-                  borderRadius: 14,
-                  padding: '12px',
+                  border: '1px solid rgba(57, 211, 83, 0.22)',
+                  borderRadius: 11,
+                  padding: '8px 10px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#39D353', textTransform: 'uppercase' }}>
-                    Record Streak
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#39D353', textTransform: 'uppercase' }}>
+                    Best
                   </span>
-                  <Award size={14} color="#39D353" />
+                  <Award size={12} color="#39D353" />
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#FFF', marginTop: 4 }}>
-                  {activeStreakDays} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ios-label2)' }}>days</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 2 }}>
-                  Personal best
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#FFF', marginTop: 2 }}>
+                  {activeStreakDays} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--ios-label2)' }}>days</span>
                 </div>
               </div>
 
@@ -381,21 +368,18 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
                 style={{
                   background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: 14,
-                  padding: '12px',
+                  borderRadius: 11,
+                  padding: '8px 10px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-label2)', textTransform: 'uppercase' }}>
-                    Total Done
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ios-label2)', textTransform: 'uppercase' }}>
+                    Done
                   </span>
-                  <CheckCircle2 size={14} color="var(--ios-blue)" />
+                  <CheckCircle2 size={12} color="var(--ios-blue)" />
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#FFF', marginTop: 4 }}>
-                  {totalCompletions} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ios-label2)' }}>items</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 2 }}>
-                  Tasks & routines
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#FFF', marginTop: 2 }}>
+                  {totalCompletions}
                 </div>
               </div>
 
@@ -403,40 +387,36 @@ export const StreakGraph: React.FC<StreakGraphProps> = ({ stats }) => {
               <div
                 style={{
                   background: 'rgba(94, 92, 230, 0.1)',
-                  border: '1px solid rgba(94, 92, 230, 0.25)',
-                  borderRadius: 14,
-                  padding: '12px',
+                  border: '1px solid rgba(94, 92, 230, 0.22)',
+                  borderRadius: 11,
+                  padding: '8px 10px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-indigo)', textTransform: 'uppercase' }}>
-                    Consistency
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ios-indigo)', textTransform: 'uppercase' }}>
+                    Rate
                   </span>
-                  <Zap size={14} color="var(--ios-indigo)" />
+                  <Zap size={12} color="var(--ios-indigo)" />
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#FFF', marginTop: 4 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#FFF', marginTop: 2 }}>
                   {stats.routineConsistency}%
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 2 }}>
-                  Daily habits rate
                 </div>
               </div>
             </div>
 
-            {/* Streak Motivation Banner */}
+            {/* Streak Motivation Banner (Minimal) */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 14px',
+                padding: '6px 10px',
                 background: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: 12,
+                borderRadius: 9,
                 border: '1px solid rgba(255, 255, 255, 0.06)',
               }}
             >
-              <div style={{ fontSize: 12, color: 'var(--ios-label)' }}>
-                🔥 Keep completing daily routines & tasks to extend your streak tomorrow!
+              <div style={{ fontSize: 11, color: 'var(--ios-label2)' }}>
+                🔥 Complete daily items to build streak.
               </div>
             </div>
           </div>
